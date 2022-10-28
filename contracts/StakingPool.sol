@@ -124,6 +124,7 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     uint256 amount = stake.amountStaked.add(reward);
     TransferHelpers._safeTransferERC20(token, stake.staker, amount);
     stake.since = block.timestamp;
+    stake.nextWithdrawalTime = block.timestamp + withdrawalIntervals;
     emit Withdrawn(amount, stakeId);
   }
 

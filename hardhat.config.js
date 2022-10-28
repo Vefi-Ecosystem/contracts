@@ -10,7 +10,15 @@ require("dotenv").config();
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.17",
+  solidity: {
+    version: "0.8.17",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000000
+      }
+    }
+  },
   networks: {
     local: {
       url: "http://localhost:8545",
@@ -21,11 +29,52 @@ module.exports = {
       url: "https://bsctestapi.terminet.io/rpc",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 97
+    },
+    bitgert_mainnet: {
+      url: "https://rpc.icecreamswap.com",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 32520
+    },
+    telos_mainnet: {
+      url: "https://rpc2.eu.telos.net/evm",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 40
+    },
+    gatechain_mainnet: {
+      url: "https://evm.gatenode.cc",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 86
+    },
+    ethereum_mainnet: {
+      url: "https://1rpc.io/eth",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 1
+    },
+    matic_mainnet: {
+      url: "https://matic.slingshot.finance",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 137
+    },
+    avalanche_mainnet: {
+      url: "https://1rpc.io/avax/c",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 43114
+    },
+    omax_mainnet: {
+      url: "https://mainapi.omaxray.com",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 311
+    },
+    bsc_mainnet: {
+      url: "https://bsc-dataseed4.defibit.io",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 56
     }
   },
   etherscan: {
     apiKey: {
-      bscTestnet: process.env.BSC_API_KEY
+      bscTestnet: process.env.BSC_API_KEY,
+      bsc: process.env.BSC_API_KEY
     }
   }
 };
