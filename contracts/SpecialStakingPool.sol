@@ -44,6 +44,8 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
     uint8 stakingTax,
     uint256 intervals
   ) {
+    require(A == address(0) || A.isContract(), "A_must_be_zero_address_or_contract");
+    require(B.isContract(), "B_must_be_contract");
     tokenA = A;
     tokenB = B;
     tokenAAPY = aAPY;
@@ -91,6 +93,7 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
 
   function stakeAsset(address token, uint256 amount) external whenNotPaused nonReentrant {
     require(token.isContract(), "must_be_contract_address");
+    require(token == tokenA, "cannot_stake_this_token");
     require(!blockedAddresses[_msgSender()], "blocked");
     require(amount > 0, "must_stake_greater_than_0");
     uint256 tax = amount.mul(stakingPoolTax) / 100;
@@ -155,8 +158,15 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
     uint256 reward = calculateReward(stakeId);
     address token = stake.tokenStaked == tokenA ? tokenB : tokenA;
     uint256 amount = stake.amountStaked.add(reward);
-    IvToken(token).mint(_msgSender(), amount);
+
+    if (token == tokenB) IvToken(token).mint(_msgSender(), amount);
+    else {
+      if (tokenA == address(0)) TransferHelpers._safeTransferEther(_msgSender(), amount);
+      else TransferHelpers._safeTransferERC20(token, _msgSender(), amount);
+    }
+
     stake.since = block.timestamp;
+    stake.nextWithdrawalTime = block.timestamp.add(withdrawalIntervals);
     emit Withdrawn(amount, stakeId);
   }
 
@@ -164,15 +174,21 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
     TransferHelpers._safeTransferEther(to, withdrawable);
   }
 
+  function setStakingPoolTax(uint8 poolTax) external onlyOwner {
+    stakingPoolTax = poolTax;
+  }
+
   function retrieveERC20(
     address token,
     address to,
     uint256 amount
   ) external onlyOwner {
-    require(
-      IERC20(token).balanceOf(address(this)) > nonWithdrawableERC20[token] && nonWithdrawableERC20[token] > amount,
-      "you_are_not_allowed_to_withdraw_this_amount_of_erc20"
-    );
+    require(token.isContract(), "must_be_contract_address");
+    uint256 bal = IERC20(token).balanceOf(address(this));
+    require(bal > nonWithdrawableERC20[token], "balance_lower_than_staked");
+
+    if (nonWithdrawableERC20[token] > 0) require(bal.sub(amount) < nonWithdrawableERC20[token], "amount_must_be_less_than_staked");
+
     TransferHelpers._safeTransferERC20(token, to, amount);
   }
 
