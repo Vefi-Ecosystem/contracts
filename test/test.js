@@ -97,7 +97,7 @@ describe("Tests", () => {
       erc202 = await erc201.deployed();
 
       const StakingPoolFactory = await ethers.getContractFactory("StakingPool");
-      stakingPool = await StakingPoolFactory.deploy(signer1.address, erc201.address, erc202.address, 5, 5);
+      stakingPool = await StakingPoolFactory.deploy(signer1.address, erc201.address, erc202.address, 5, 5, 8, 30);
       stakingPool = await stakingPool.deployed();
 
       await erc201.transfer(stakingPool.address, ethers.utils.parseEther("400"));

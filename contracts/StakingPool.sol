@@ -124,7 +124,7 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     uint256 amount = stake.amountStaked.add(reward);
     TransferHelpers._safeTransferERC20(token, stake.staker, amount);
     stake.since = block.timestamp;
-    stake.nextWithdrawalTime = block.timestamp + withdrawalIntervals;
+    stake.nextWithdrawalTime = block.timestamp.add(withdrawalIntervals);
     emit Withdrawn(amount, stakeId);
   }
 
@@ -132,12 +132,23 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     TransferHelpers._safeTransferEther(to, address(this).balance);
   }
 
+  function setStakingPoolTax(uint8 poolTax) external onlyOwner {
+    stakingPoolTax = poolTax;
+  }
+
   function retrieveERC20(
     address token,
     address to,
     uint256 amount
   ) external onlyOwner {
-    require(IERC20(token).balanceOf(address(this)) > nonWithdrawableERC20[token] && nonWithdrawableERC20[token] > amount);
+    require(token.isContract(), "must_be_contract_address");
+    uint256 bal = IERC20(token).balanceOf(address(this));
+    require(bal > nonWithdrawableERC20[token], "balance_lower_than_staked");
+
+    if (nonWithdrawableERC20[token] > 0) {
+      require(bal.sub(amount) < nonWithdrawableERC20[token], "amount_must_be_less_than_staked");
+    }
+
     TransferHelpers._safeTransferERC20(token, to, amount);
   }
 

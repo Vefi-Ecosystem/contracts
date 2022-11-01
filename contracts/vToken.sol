@@ -104,5 +104,9 @@ contract vToken is ERC20, AccessControl, Ownable, IvToken {
     _revokeRole(minterRole, account);
   }
 
+  function setTaxCollector(address tCollector) external onlyOwner {
+    taxCollector = tCollector;
+  }
+
   receive() external payable {}
 }
