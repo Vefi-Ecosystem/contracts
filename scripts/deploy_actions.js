@@ -7,7 +7,8 @@ const coinGeckID = {
   56: "binancecoin",
   32520: "bitrise-token",
   311: "omax-token",
-  86: "gatechain-token"
+  86: "gatechain-token",
+  888: "wanchain"
 };
 
 (async () => {
