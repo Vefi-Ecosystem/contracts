@@ -15,7 +15,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000000
+        runs: 200
       }
     }
   },
@@ -76,10 +76,10 @@ module.exports = {
       chainId: 888
     },
     okx_mainnet: {
-      url: 'https://exchainrpc.okex.org',
+      url: "https://exchainrpc.okex.org",
       accounts: [process.env.PRIVATE_KEY],
-      chainId: 66,
-    },
+      chainId: 66
+    }
   },
   etherscan: {
     apiKey: {

@@ -11,7 +11,8 @@
     "deploy:staking-pool-actions:gatechain:mainnet": "npx hardhat run scripts/deploy_actions.js --network gatechain_mainnet",
     "deploy:staking-pool-actions:omax:mainnet": "npx hardhat run scripts/deploy_actions.js --network omax_mainnet",
     "deploy:staking-pool-actions:wanchain:mainnet": "npx hardhat run scripts/deploy_actions.js --network wanchain_mainnet",
-    "deploy:staking-pool-actions:okx:mainnet": "npx hardhat run scripts/deploy_actions.js --network okx_mainnet"
+    "deploy:staking-pool-actions:okx:mainnet": "npx hardhat run scripts/deploy_actions.js --network okx_mainnet",
+    "deploy:usdb:bitgert:mainnet": "npx hardhat run scripts/deploy_usdb.js --network bitgert_mainnet"
   },
   "repository": {
     "type": "git",
