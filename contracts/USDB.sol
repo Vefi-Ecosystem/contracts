@@ -7,28 +7,29 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./helpers/TransferHelper.sol";
 import "./interfaces/IvToken.sol";
 
-contract vToken is ERC20, AccessControl, Ownable, IvToken {
+contract USDB is ERC20, AccessControl, Ownable, IvToken {
   using SafeMath for uint256;
 
   bytes32 public excludedFromTaxRole = keccak256(abi.encodePacked("EXCLUDED_FROM_TAX"));
   bytes32 public retrieverRole = keccak256(abi.encodePacked("RETRIEVER_ROLE"));
   bytes32 public minterRole = keccak256(abi.encodePacked("MINTER_ROLE"));
   address public taxCollector;
-  uint256 public taxPercentage;
+  uint8 public taxPercentage;
 
   constructor(
     string memory name_,
     string memory symbol_,
     uint256 amount,
     address tCollector,
-    uint256 tPercentage
+    uint8 tPercentage
   ) ERC20(name_, symbol_) {
     _grantRole(excludedFromTaxRole, _msgSender());
     _grantRole(retrieverRole, _msgSender());
-    _grantRole(minterRole, _msgSender());
     _mint(_msgSender(), amount);
-    taxCollector = tCollector;
-    taxPercentage = tPercentage;
+    {
+      taxCollector = tCollector;
+      taxPercentage = tPercentage;
+    }
   }
 
   function _transfer(
@@ -37,7 +38,7 @@ contract vToken is ERC20, AccessControl, Ownable, IvToken {
     uint256 amount
   ) internal virtual override(ERC20) {
     if (!hasRole(excludedFromTaxRole, sender) && sender != address(this)) {
-      uint256 tax = amount.mul(taxPercentage).div(100);
+      uint256 tax = amount.mul(uint256(taxPercentage)).div(100);
       super._transfer(sender, taxCollector, tax);
       super._transfer(sender, recipient, amount.sub(tax));
     } else {
@@ -89,7 +90,7 @@ contract vToken is ERC20, AccessControl, Ownable, IvToken {
     _revokeRole(retrieverRole, account);
   }
 
-  function setTaxPercentage(uint256 tPercentage) external onlyOwner {
+  function setTaxPercentage(uint8 tPercentage) external onlyOwner {
     require(tPercentage <= 10, "tax_must_be_ten_percent_or_less");
     taxPercentage = tPercentage;
   }

@@ -172,6 +172,7 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
 
   function retrieveEther(address to) external onlyOwner {
     TransferHelpers._safeTransferEther(to, withdrawable);
+    withdrawable = 0;
   }
 
   function setStakingPoolTax(uint8 poolTax) external onlyOwner {
