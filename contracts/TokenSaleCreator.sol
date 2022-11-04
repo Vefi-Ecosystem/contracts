@@ -20,7 +20,7 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
   bytes32 public finalizerRole = keccak256(abi.encodePacked("FINALIZER_ROLE"));
   uint256 public withdrawable;
 
-  uint256 public feePercentage;
+  uint8 public feePercentage;
 
   mapping(bytes32 => TokenSaleItem) private tokenSales;
   mapping(bytes32 => uint256) private totalEtherRaised;
@@ -38,7 +38,7 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     _;
   }
 
-  constructor(uint256 _feePercentage) {
+  constructor(uint8 _feePercentage) {
     _grantRole(pauserRole, _msgSender());
     _grantRole(withdrawerRole, _msgSender());
     _grantRole(finalizerRole, _msgSender());
@@ -58,10 +58,12 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     address proceedsTo,
     address admin
   ) external whenNotPaused nonReentrant returns (bytes32 saleId) {
-    require(token.isContract(), "must_be_contract_address");
-    require(saleStartTime > block.timestamp && saleStartTime.sub(block.timestamp) >= 24 hours, "sale_must_begin_in_at_least_24_hours");
-    require(IERC20(token).allowance(_msgSender(), address(this)) >= tokensForSale, "not_enough_allowance_given");
-    TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), tokensForSale);
+    {
+      require(token.isContract(), "must_be_contract_address");
+      require(saleStartTime > block.timestamp && saleStartTime.sub(block.timestamp) >= 24 hours, "sale_must_begin_in_at_least_24_hours");
+      require(IERC20(token).allowance(_msgSender(), address(this)) >= tokensForSale, "not_enough_allowance_given");
+      TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), tokensForSale);
+    }
     saleId = keccak256(
       abi.encodePacked(
         token,
@@ -163,7 +165,7 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     TokenSaleItem storage tokenSale = tokenSales[saleId];
     require(hasRole(finalizerRole, _msgSender()) || tokenSale.admin == _msgSender(), "only_finalizer_or_admin");
     require(!tokenSale.ended, "sale_has_ended");
-    uint256 launchpadProfit = (totalEtherRaised[saleId] * feePercentage).div(100);
+    uint256 launchpadProfit = (totalEtherRaised[saleId] * uint256(feePercentage)).div(100);
     TransferHelpers._safeTransferEther(tokenSale.proceedsTo, totalEtherRaised[saleId].sub(launchpadProfit));
     withdrawable = withdrawable.add(launchpadProfit);
 
@@ -215,9 +217,13 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
   }
 
   function withdrawProfit(address to) external {
-    require(hasRole(withdrawerRole, _msgSender()), "only_withdrawer");
+    require(hasRole(withdrawerRole, _msgSender()) || _msgSender() == owner(), "only_withdrawer_or_owner");
     TransferHelpers._safeTransferEther(to, withdrawable);
     withdrawable = 0;
+  }
+
+  function setFeePercentage(uint8 _feePercentage) external onlyOwner {
+    feePercentage = _feePercentage;
   }
 
   receive() external payable {

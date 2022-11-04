@@ -52,7 +52,7 @@ interface ITokenSaleCreator {
 
   function allTokenSales(uint256) external view returns (bytes32);
 
-  function feePercentage() external view returns (uint256);
+  function feePercentage() external view returns (uint8);
 
   function balance(bytes32 saleId, address account) external view returns (uint256);
 

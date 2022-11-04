@@ -61,10 +61,12 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     address admin,
     address[] memory whiteList
   ) external whenNotPaused nonReentrant returns (bytes32 saleId) {
-    require(token.isContract(), "must_be_contract_address");
-    require(saleStartTime > block.timestamp && saleStartTime.sub(block.timestamp) >= 24 hours, "sale_must_begin_in_at_least_24_hours");
-    require(IERC20(token).allowance(_msgSender(), address(this)) >= tokensForSale, "not_enough_allowance_given");
-    TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), tokensForSale);
+    {
+      require(token.isContract(), "must_be_contract_address");
+      require(saleStartTime > block.timestamp && saleStartTime.sub(block.timestamp) >= 24 hours, "sale_must_begin_in_at_least_24_hours");
+      require(IERC20(token).allowance(_msgSender(), address(this)) >= tokensForSale, "not_enough_allowance_given");
+      TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), tokensForSale);
+    }
     saleId = keccak256(
       abi.encodePacked(
         token,
