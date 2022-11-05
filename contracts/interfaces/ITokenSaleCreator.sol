@@ -46,7 +46,7 @@ interface ITokenSaleCreator {
     uint256 daysToLast,
     address proceedsTo,
     address admin
-  ) external returns (bytes32 saleId);
+  ) external payable returns (bytes32 saleId);
 
   function interrupTokenSale(bytes32 saleId) external;
 

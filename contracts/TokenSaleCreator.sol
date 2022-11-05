@@ -21,6 +21,7 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
   uint256 public withdrawable;
 
   uint8 public feePercentage;
+  uint256 public saleCreationFee;
 
   mapping(bytes32 => TokenSaleItem) private tokenSales;
   mapping(bytes32 => uint256) private totalEtherRaised;
@@ -38,11 +39,12 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     _;
   }
 
-  constructor(uint8 _feePercentage) {
+  constructor(uint8 _feePercentage, uint256 _saleCreationFee) {
     _grantRole(pauserRole, _msgSender());
     _grantRole(withdrawerRole, _msgSender());
     _grantRole(finalizerRole, _msgSender());
     feePercentage = _feePercentage;
+    saleCreationFee = _saleCreationFee;
   }
 
   function initTokenSale(
@@ -57,8 +59,9 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     uint256 daysToLast,
     address proceedsTo,
     address admin
-  ) external whenNotPaused nonReentrant returns (bytes32 saleId) {
+  ) external payable whenNotPaused nonReentrant returns (bytes32 saleId) {
     {
+      require(msg.value >= saleCreationFee, "fee");
       require(token.isContract(), "must_be_contract_address");
       require(saleStartTime > block.timestamp && saleStartTime.sub(block.timestamp) >= 24 hours, "sale_must_begin_in_at_least_24_hours");
       require(IERC20(token).allowance(_msgSender(), address(this)) >= tokensForSale, "not_enough_allowance_given");
@@ -103,6 +106,7 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
       );
     }
     allTokenSales.push(saleId);
+    withdrawable = msg.value;
     emit TokenSaleItemCreated(
       saleId,
       token,
@@ -224,6 +228,10 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
 
   function setFeePercentage(uint8 _feePercentage) external onlyOwner {
     feePercentage = _feePercentage;
+  }
+
+  function setSaleCreationFee(uint256 _saleCreationFee) external onlyOwner {
+    saleCreationFee = _saleCreationFee;
   }
 
   receive() external payable {
