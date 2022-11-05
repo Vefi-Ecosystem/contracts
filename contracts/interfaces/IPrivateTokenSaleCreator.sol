@@ -47,7 +47,7 @@ interface IPrivateTokenSaleCreator {
     address proceedsTo,
     address admin,
     address[] memory whitelist
-  ) external returns (bytes32 saleId);
+  ) external payable returns (bytes32 saleId);
 
   function interrupTokenSale(bytes32 saleId) external;
 

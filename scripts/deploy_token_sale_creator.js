@@ -1,13 +1,28 @@
 const { ethers, network } = require("hardhat");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
+
+const coinGeckID = {
+  97: "binancecoin",
+  56: "binancecoin",
+  32520: "bitrise-token",
+  311: "omax-token",
+  86: "gatechain-token",
+  888: "wanchain",
+  66: "oec-token"
+};
 
 (async () => {
   console.log("---------- Deploying to chain %d ----------", network.config.chainId);
   const TokenSaleCreatorFactory = await ethers.getContractFactory("TokenSaleCreator");
   const PrivateTokenSaleCreatorFactory = await ethers.getContractFactory("PrivateTokenSaleCreator");
-  let tokenSaleCreator = await TokenSaleCreatorFactory.deploy(5);
-  let privateTokenSaleCreator = await PrivateTokenSaleCreatorFactory.deploy(5);
+  const cgID = coinGeckID[network.config.chainId];
+  const { data } = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cgID}&vs_currencies=usd`);
+  const valInUSD = data[cgID].usd;
+  const valEther = 100 / valInUSD;
+  let tokenSaleCreator = await TokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
+  let privateTokenSaleCreator = await PrivateTokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
   tokenSaleCreator = await tokenSaleCreator.deployed();
   privateTokenSaleCreator = await privateTokenSaleCreator.deployed();
 
