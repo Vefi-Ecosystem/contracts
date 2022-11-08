@@ -223,6 +223,10 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
     _revokeRole(apySetterRole, account);
   }
 
+  function setWithdrawalIntervals(uint256 intervals) external onlyOwner {
+    withdrawalIntervals = intervals;
+  }
+
   function setPauser(address account) external onlyOwner {
     require(!hasRole(pauserRole, account), "already_pauser");
     _grantRole(pauserRole, account);
