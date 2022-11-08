@@ -31,7 +31,7 @@ module.exports = {
       chainId: 97
     },
     bitgert_mainnet: {
-      url: "https://rpc.icecreamswap.com",
+      url: "https://chainrpc.com",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 32520
     },

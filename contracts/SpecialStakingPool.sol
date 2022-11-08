@@ -87,7 +87,7 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
     bytes32[] storage stakez = poolsByAddresses[_msgSender()];
     stakez.push(stakeId);
     stakeIDs.push(stakeId);
-    withdrawable = tax;
+    withdrawable = withdrawable.add(tax);
     emit Staked(msg.value, address(0), stake.since, _msgSender(), stakeId);
   }
 
@@ -238,6 +238,6 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
   }
 
   receive() external payable {
-    withdrawable = msg.value;
+    withdrawable = withdrawable.add(msg.value);
   }
 }
