@@ -123,10 +123,10 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
       TransferHelpers._safeTransferEther(_msgSender(), amount);
     } else {
       TransferHelpers._safeTransferERC20(stake.tokenStaked, _msgSender(), amount);
+      nonWithdrawableERC20[stake.tokenStaked] = nonWithdrawableERC20[stake.tokenStaked].sub(amount);
     }
 
     stake.amountStaked = stake.amountStaked.sub(amount);
-    nonWithdrawableERC20[stake.tokenStaked] = nonWithdrawableERC20[stake.tokenStaked].sub(amount);
     emit Unstaked(amount, stakeId);
   }
 
@@ -137,6 +137,7 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
       TransferHelpers._safeTransferEther(_msgSender(), stake.amountStaked);
     } else {
       TransferHelpers._safeTransferERC20(stake.tokenStaked, _msgSender(), stake.amountStaked);
+      nonWithdrawableERC20[stake.tokenStaked] = nonWithdrawableERC20[stake.tokenStaked].sub(stake.amountStaked);
     }
     delete stakes[stakeId];
 
@@ -147,7 +148,6 @@ contract SpecialStakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard
         stakez[i] = bytes32(0);
       }
     }
-    nonWithdrawableERC20[stake.tokenStaked] = nonWithdrawableERC20[stake.tokenStaked].sub(stake.amountStaked);
     emit Unstaked(stake.amountStaked, stakeId);
   }
 
