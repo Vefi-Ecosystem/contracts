@@ -154,13 +154,13 @@ contract TokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl, 
     delete amountContributed[saleId][_msgSender()];
   }
 
-  function interrupTokenSale(bytes32 saleId) external whenNotPaused onlyOwner {
+  function interruptTokenSale(bytes32 saleId) external whenNotPaused onlyOwner {
     TokenSaleItem storage tokenSale = tokenSales[saleId];
     require(!tokenSale.ended, "token_sale_has_ended");
     tokenSale.interrupted = true;
   }
 
-  function uninterrupTokenSale(bytes32 saleId) external whenNotPaused onlyOwner {
+  function uninterruptTokenSale(bytes32 saleId) external whenNotPaused onlyOwner {
     TokenSaleItem storage tokenSale = tokenSales[saleId];
     tokenSale.interrupted = false;
   }

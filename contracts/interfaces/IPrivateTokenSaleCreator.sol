@@ -49,7 +49,7 @@ interface IPrivateTokenSaleCreator {
     address[] memory whitelist
   ) external payable returns (bytes32 saleId);
 
-  function interrupTokenSale(bytes32 saleId) external;
+  function interruptTokenSale(bytes32 saleId) external;
 
   function allTokenSales(uint256) external view returns (bytes32);
 
