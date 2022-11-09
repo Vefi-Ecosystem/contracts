@@ -13,7 +13,7 @@ const usdbAddresses = {
     const SpecialStakingPoolFactory = await ethers.getContractFactory("SpecialStakingPool");
     let specialStakingPool = await SpecialStakingPoolFactory.deploy(
       "0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578",
-      ethers.constants.AddressZero,
+      "0xAA8b4B5b8e0FB255DEFCD735F4601b95f651EE7B",
       usdbAddresses[network.config.chainId],
       8,
       1800,
@@ -30,7 +30,7 @@ const usdbAddresses = {
       let contentJSON = JSON.parse(contentBuf.toString());
       contentJSON = {
         ...contentJSON,
-        [network.config.chainId]: specialStakingPool.address
+        [network.config.chainId]: [...contentJSON[network.config.chainId], specialStakingPool.address]
       };
       fs.writeFileSync(location, JSON.stringify(contentJSON, undefined, 2));
     } else {
@@ -38,7 +38,7 @@ const usdbAddresses = {
         location,
         JSON.stringify(
           {
-            [network.config.chainId]: specialStakingPool.address
+            [network.config.chainId]: [specialStakingPool.address]
           },
           undefined,
           2
