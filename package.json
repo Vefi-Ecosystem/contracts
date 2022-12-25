@@ -15,7 +15,8 @@
     "deploy:usdb:bitgert:mainnet": "npx hardhat run scripts/deploy_usdb.js --network bitgert_mainnet",
     "deploy:token-sale-creators:bsc:testnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network bsc_testnet",
     "deploy:token-sale-creators:bitgert:mainnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network bitgert_mainnet",
-    "deploy:special-pools:bitgert:mainnet": "npx hardhat run scripts/deploy_special_staking_pool.js --network bitgert_mainnet"
+    "deploy:special-pools:bitgert:mainnet": "npx hardhat run scripts/deploy_special_staking_pool.js --network bitgert_mainnet",
+    "deploy:token-sale-creators:ethereum:mainnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network ethereum_mainnet"
   },
   "repository": {
     "type": "git",

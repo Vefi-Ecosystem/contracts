@@ -1,4 +1,8 @@
 {
+  "1": {
+    "tokenSale": "0xe88DdB8699E78FbCD6215eBCA61127A7C1627316",
+    "privateTokenSale": "0x68D81F61b88c2622A590719f956f5Dc253a1dC3d"
+  },
   "97": {
     "tokenSale": "0x3E38739C09B86FEFA69bE77CDF06f3c4893da6E2",
     "privateTokenSale": "0xFce7570c4344009020e8f729C6FA1c342F42Cea6"

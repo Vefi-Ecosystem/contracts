@@ -15,7 +15,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 60000000
+        runs: 200
       }
     }
   },
@@ -46,7 +46,7 @@ module.exports = {
       chainId: 86
     },
     ethereum_mainnet: {
-      url: "https://1rpc.io/eth",
+      url: "https://eth-rpc.gateway.pokt.network",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 1
     },
