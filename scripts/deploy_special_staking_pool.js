@@ -13,10 +13,10 @@ const usdbAddresses = {
     const SpecialStakingPoolFactory = await ethers.getContractFactory("SpecialStakingPool");
     let specialStakingPool = await SpecialStakingPoolFactory.deploy(
       "0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578",
-      "0x1eb697Cb6F457F6a65C682F7f7c65F9f2E622A34",
+      "0x927eFa8c553bC6bc7a4c65719Fa415fD3d17E6cE",
       usdbAddresses[network.config.chainId],
       8,
-      1800,
+      2400,
       4,
       `0x${(60 * 60 * 24 * 30).toString(16)}`
     );

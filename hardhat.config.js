@@ -15,7 +15,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 60000000
+        runs: 200
       }
     }
   },
@@ -31,7 +31,7 @@ module.exports = {
       chainId: 97
     },
     bitgert_mainnet: {
-      url: "https://rpc.icecreamswap.com",
+      url: "https://nodes.vefinetwork.org/bitgert",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 32520
     },
@@ -46,7 +46,7 @@ module.exports = {
       chainId: 86
     },
     ethereum_mainnet: {
-      url: "https://1rpc.io/eth",
+      url: "https://eth-rpc.gateway.pokt.network",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 1
     },

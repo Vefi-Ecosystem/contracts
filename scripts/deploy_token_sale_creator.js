@@ -10,7 +10,8 @@ const coinGeckID = {
   311: "omax-token",
   86: "gatechain-token",
   888: "wanchain",
-  66: "oec-token"
+  66: "oec-token",
+  1: "ethereum"
 };
 
 (async () => {
@@ -20,11 +21,13 @@ const coinGeckID = {
   const cgID = coinGeckID[network.config.chainId];
   const { data } = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cgID}&vs_currencies=usd`);
   const valInUSD = data[cgID].usd;
-  const valEther = 0.00000003 / valInUSD;
+  const valEther = 200 / valInUSD;
   let tokenSaleCreator = await TokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
   let privateTokenSaleCreator = await PrivateTokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
   tokenSaleCreator = await tokenSaleCreator.deployed();
+  console.log("TokenSaleCreator ", tokenSaleCreator.address);
   privateTokenSaleCreator = await privateTokenSaleCreator.deployed();
+  console.log("PrivateTokenSaleCreator ", privateTokenSaleCreator.address);
 
   const location = path.join(__dirname, "../token_sale_creators_addresses.json");
   const fileExists = fs.existsSync(location);

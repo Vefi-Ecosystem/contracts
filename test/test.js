@@ -18,7 +18,7 @@ describe("Tests", () => {
 
     before(async () => {
       const TokenSaleCreatorFactory = await ethers.getContractFactory("TokenSaleCreator");
-      tokenSaleCreator = await TokenSaleCreatorFactory.deploy(30, ethers.utils.parseEther('0.003'));
+      tokenSaleCreator = await TokenSaleCreatorFactory.deploy(30, ethers.utils.parseEther("0.003"));
       tokenSaleCreator = await tokenSaleCreator.deployed();
 
       const ERC20Factory = await ethers.getContractFactory("TestERC20");
@@ -42,7 +42,7 @@ describe("Tests", () => {
           3,
           signer2.address,
           signer3.address,
-          { value: ethers.utils.parseEther('0.003') }
+          { value: ethers.utils.parseEther("0.003") }
         )
       ).to.emit(tokenSaleCreator, "TokenSaleItemCreated");
     });
