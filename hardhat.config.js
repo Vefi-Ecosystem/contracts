@@ -51,7 +51,7 @@ module.exports = {
       chainId: 1
     },
     matic_mainnet: {
-      url: "https://matic.slingshot.finance",
+      url: "https://matic-mainnet.chainstacklabs.com",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 137
     },
