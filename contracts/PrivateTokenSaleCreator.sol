@@ -57,24 +57,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(
-        type(PrivateSale).creationCode,
-        abi.encode(
-          saleInfo.token,
-          saleInfo.proceedsTo,
-          saleInfo.tokensForSale,
-          saleInfo.softcap,
-          saleInfo.hardcap,
-          saleInfo.tokensPerEther,
-          saleInfo.saleStartTime,
-          endTime,
-          feePercentage,
-          saleInfo.minContributionEther,
-          saleInfo.maxContributionEther,
-          saleInfo.admin,
-          saleInfo.whitelist
-        )
-      );
+      bytes memory bytecode = abi.encodePacked(type(PrivateSale).creationCode, abi.encode(saleInfo, feePercentage));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
@@ -125,25 +108,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(
-        type(PrivateSaleVestable).creationCode,
-        abi.encode(
-          saleInfo.token,
-          saleInfo.proceedsTo,
-          saleInfo.tokensForSale,
-          saleInfo.softcap,
-          saleInfo.hardcap,
-          saleInfo.tokensPerEther,
-          saleInfo.saleStartTime,
-          endTime,
-          feePercentage,
-          saleInfo.minContributionEther,
-          saleInfo.maxContributionEther,
-          saleInfo.admin,
-          saleInfo.whitelist,
-          vestingSchedule
-        )
-      );
+      bytes memory bytecode = abi.encodePacked(type(PrivateSaleVestable).creationCode, abi.encode(saleInfo, feePercentage, vestingSchedule));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {

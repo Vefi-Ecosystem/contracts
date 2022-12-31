@@ -57,23 +57,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(
-        type(Presale).creationCode,
-        abi.encode(
-          saleInfo.token,
-          saleInfo.proceedsTo,
-          saleInfo.tokensForSale,
-          saleInfo.softcap,
-          saleInfo.hardcap,
-          saleInfo.tokensPerEther,
-          saleInfo.saleStartTime,
-          endTime,
-          feePercentage,
-          saleInfo.minContributionEther,
-          saleInfo.maxContributionEther,
-          saleInfo.admin
-        )
-      );
+      bytes memory bytecode = abi.encodePacked(type(Presale).creationCode, abi.encode(saleInfo, feePercentage));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
@@ -124,24 +108,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(
-        type(PresaleVestable).creationCode,
-        abi.encode(
-          saleInfo.token,
-          saleInfo.proceedsTo,
-          saleInfo.tokensForSale,
-          saleInfo.softcap,
-          saleInfo.hardcap,
-          saleInfo.tokensPerEther,
-          saleInfo.saleStartTime,
-          endTime,
-          feePercentage,
-          saleInfo.minContributionEther,
-          saleInfo.maxContributionEther,
-          saleInfo.admin,
-          vestingSchedule
-        )
-      );
+      bytes memory bytecode = abi.encodePacked(type(PresaleVestable).creationCode, abi.encode(saleInfo, feePercentage, vestingSchedule));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {

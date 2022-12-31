@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/ITokenSale.sol";
+import "./misc/SaleInfo.sol";
 import "./helpers/TransferHelper.sol";
 
 contract PrivateSale is Ownable, ReentrancyGuard, Pausable, ITokenSale {
@@ -46,37 +47,23 @@ contract PrivateSale is Ownable, ReentrancyGuard, Pausable, ITokenSale {
     _;
   }
 
-  constructor(
-    address _token,
-    address _proceedsTo,
-    uint256 _tokensAvailableForSale,
-    uint256 _softcap,
-    uint256 _hardcap,
-    uint256 _tokensPerEther,
-    uint256 _saleStartTime,
-    uint256 _saleEndTime,
-    uint8 _saleCreatorPercentage,
-    uint256 _minContribution,
-    uint256 _maxContribution,
-    address _admin,
-    address[] memory whitelist
-  ) {
-    token = _token;
+  constructor(PrivateSaleInfo memory saleInfo, uint8 _saleCreatorPercentage) {
+    token = saleInfo.token;
     saleCreator = _msgSender();
-    proceedsTo = _proceedsTo;
-    tokensAvailableForSale = _tokensAvailableForSale;
-    softcap = _softcap;
-    hardcap = _hardcap;
-    tokensPerEther = _tokensPerEther;
-    saleStartTime = _saleStartTime;
-    saleEndTime = _saleEndTime;
+    proceedsTo = saleInfo.proceedsTo;
+    tokensAvailableForSale = saleInfo.tokensForSale;
+    softcap = saleInfo.softcap;
+    hardcap = saleInfo.hardcap;
+    tokensPerEther = saleInfo.tokensPerEther;
+    saleStartTime = saleInfo.saleStartTime;
+    saleEndTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
     saleCreatorPercentage = _saleCreatorPercentage;
-    minContribution = _minContribution;
-    maxContribution = _maxContribution;
-    admin = _admin;
-    _transferOwnership(_admin);
+    minContribution = saleInfo.minContributionEther;
+    maxContribution = saleInfo.maxContributionEther;
+    admin = saleInfo.admin;
+    _transferOwnership(saleInfo.admin);
 
-    for (uint256 i = 0; i < whitelist.length; i++) _switchWhitelistAddress(whitelist[i]);
+    for (uint256 i = 0; i < saleInfo.whitelist.length; i++) _switchWhitelistAddress(saleInfo.whitelist[i]);
   }
 
   function contribute() external payable nonReentrant whenNotPaused ifParamsSatisfied {
