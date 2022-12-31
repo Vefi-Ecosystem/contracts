@@ -10,10 +10,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./helpers/TransferHelper.sol";
 import "./misc/VestingSchedule.sol";
 import "./misc/SaleInfo.sol";
-import "./PrivateSale.sol";
-import "./PrivateSaleVestable.sol";
+import "./Presale.sol";
+import "./PresaleVestable.sol";
 
-contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl {
+contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessControl {
   using Address for address;
   using SafeMath for uint256;
 
@@ -24,7 +24,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
   uint256 public saleCreationFee;
 
   event TokenSaleItemCreated(
-    address privateSaleAddress,
+    address presaleAddress,
     address token,
     uint256 tokensForSale,
     uint256 softcap,
@@ -44,7 +44,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     saleCreationFee = _saleCreationFee;
   }
 
-  function createPrivateSale(PrivateSaleInfo memory saleInfo) external payable whenNotPaused nonReentrant returns (address privateSaleAddress) {
+  function createPresale(PresaleInfo memory saleInfo) external payable whenNotPaused nonReentrant returns (address presaleAddress) {
     uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
 
     {
@@ -58,7 +58,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
 
     {
       bytes memory bytecode = abi.encodePacked(
-        type(PrivateSale).creationCode,
+        type(Presale).creationCode,
         abi.encode(
           saleInfo.token,
           saleInfo.proceedsTo,
@@ -71,26 +71,25 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
           feePercentage,
           saleInfo.minContributionEther,
           saleInfo.maxContributionEther,
-          saleInfo.admin,
-          saleInfo.whitelist
+          saleInfo.admin
         )
       );
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
-        privateSaleAddress := create2(0, add(bytecode, 32), mload(bytecode), salt)
-        if iszero(extcodesize(privateSaleAddress)) {
+        presaleAddress := create2(0, add(bytecode, 32), mload(bytecode), salt)
+        if iszero(extcodesize(presaleAddress)) {
           revert(0, 0)
         }
       }
       require(IERC20(saleInfo.token).allowance(_msgSender(), address(this)) >= saleInfo.tokensForSale, "not_enough_allowance_given");
-      TransferHelpers._safeTransferFromERC20(saleInfo.token, _msgSender(), privateSaleAddress, saleInfo.tokensForSale);
+      TransferHelpers._safeTransferFromERC20(saleInfo.token, _msgSender(), presaleAddress, saleInfo.tokensForSale);
     }
 
     {
-      allTokenSales.push(privateSaleAddress);
+      allTokenSales.push(presaleAddress);
       emit TokenSaleItemCreated(
-        privateSaleAddress,
+        presaleAddress,
         saleInfo.token,
         saleInfo.tokensForSale,
         saleInfo.softcap,
@@ -106,12 +105,12 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     }
   }
 
-  function createPrivateSaleVestable(PrivateSaleInfo memory saleInfo, VestingSchedule[] memory vestingSchedule)
+  function createPresaleVestable(PresaleInfo memory saleInfo, VestingSchedule[] memory vestingSchedule)
     external
     payable
     whenNotPaused
     nonReentrant
-    returns (address privateSaleAddress)
+    returns (address presaleAddress)
   {
     uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
 
@@ -126,7 +125,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
 
     {
       bytes memory bytecode = abi.encodePacked(
-        type(PrivateSaleVestable).creationCode,
+        type(PresaleVestable).creationCode,
         abi.encode(
           saleInfo.token,
           saleInfo.proceedsTo,
@@ -140,26 +139,25 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
           saleInfo.minContributionEther,
           saleInfo.maxContributionEther,
           saleInfo.admin,
-          saleInfo.whitelist,
           vestingSchedule
         )
       );
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
-        privateSaleAddress := create2(0, add(bytecode, 32), mload(bytecode), salt)
-        if iszero(extcodesize(privateSaleAddress)) {
+        presaleAddress := create2(0, add(bytecode, 32), mload(bytecode), salt)
+        if iszero(extcodesize(presaleAddress)) {
           revert(0, 0)
         }
       }
       require(IERC20(saleInfo.token).allowance(_msgSender(), address(this)) >= saleInfo.tokensForSale, "not_enough_allowance_given");
-      TransferHelpers._safeTransferFromERC20(saleInfo.token, _msgSender(), privateSaleAddress, saleInfo.tokensForSale);
+      TransferHelpers._safeTransferFromERC20(saleInfo.token, _msgSender(), presaleAddress, saleInfo.tokensForSale);
     }
 
     {
-      allTokenSales.push(privateSaleAddress);
+      allTokenSales.push(presaleAddress);
       emit TokenSaleItemCreated(
-        privateSaleAddress,
+        presaleAddress,
         saleInfo.token,
         saleInfo.tokensForSale,
         saleInfo.softcap,

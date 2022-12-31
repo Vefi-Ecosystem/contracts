@@ -17,13 +17,13 @@ const coinGeckID = {
 
 (async () => {
   console.log("---------- Deploying to chain %d ----------", network.config.chainId);
-  const TokenSaleCreatorFactory = await ethers.getContractFactory("TokenSaleCreator");
+  const PublicTokenSaleCreatorFactory = await ethers.getContractFactory("PublicTokenSaleCreator");
   const PrivateTokenSaleCreatorFactory = await ethers.getContractFactory("PrivateTokenSaleCreator");
   const cgID = coinGeckID[network.config.chainId];
   const { data } = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cgID}&vs_currencies=usd`);
   const valInUSD = data[cgID].usd;
   const valEther = 200 / valInUSD;
-  let tokenSaleCreator = await TokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
+  let tokenSaleCreator = await PublicTokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
   let privateTokenSaleCreator = await PrivateTokenSaleCreatorFactory.deploy(5, ethers.utils.parseEther(valEther.toString()));
   tokenSaleCreator = await tokenSaleCreator.deployed();
   console.log("TokenSaleCreator ", tokenSaleCreator.address);
@@ -39,8 +39,8 @@ const coinGeckID = {
     contentJSON = {
       ...contentJSON,
       [network.config.chainId]: {
-        tokenSale: tokenSaleCreator.address,
-        privateTokenSale: privateTokenSaleCreator.address
+        publicTokenSaleCreator: tokenSaleCreator.address,
+        privateTokenSaleCreator: privateTokenSaleCreator.address
       }
     };
     fs.writeFileSync(location, JSON.stringify(contentJSON, undefined, 2));
@@ -50,8 +50,8 @@ const coinGeckID = {
       JSON.stringify(
         {
           [network.config.chainId]: {
-            tokenSale: tokenSaleCreator.address,
-            privateTokenSale: privateTokenSaleCreator.address
+            publicTokenSaleCreator: tokenSaleCreator.address,
+            privateTokenSaleCreator: privateTokenSaleCreator.address
           }
         },
         undefined,
