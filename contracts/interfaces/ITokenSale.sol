@@ -49,4 +49,10 @@ interface ITokenSale {
   function finalizeSale() external;
 
   function saleType() external view returns (SaleType);
+
+  function pause() external;
+
+  function unpause() external;
+
+  function isPaused() external view returns (bool);
 }

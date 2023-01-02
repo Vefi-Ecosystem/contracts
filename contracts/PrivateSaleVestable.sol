@@ -110,7 +110,7 @@ contract PrivateSaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
   }
 
   function withdraw() external whenNotPaused nonReentrant {
-    require(!isSaleEnded || block.timestamp >= saleEndTime, "sale_has_not_ended");
+    require(isSaleEnded || block.timestamp >= saleEndTime, "sale_has_not_ended");
     require(block.timestamp >= nextWithdrawalTime[_msgSender()], "cannot_withdraw_now");
     uint256 balance = balances[_msgSender()];
     require(balance > 0, "balance_is_zero");
@@ -175,5 +175,17 @@ contract PrivateSaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
 
   function getVestingSchedule() external view returns (VestingSchedule[] memory) {
     return vestingSchedule;
+  }
+
+  function pause() external onlyOwner {
+    _pause();
+  }
+
+  function unpause() external onlyOwner {
+    _unpause();
+  }
+
+  function isPaused() external view returns (bool) {
+    return paused();
   }
 }

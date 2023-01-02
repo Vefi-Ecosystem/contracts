@@ -45,7 +45,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
   }
 
   function createPrivateSale(PrivateSaleInfo memory saleInfo) external payable whenNotPaused nonReentrant returns (address privateSaleAddress) {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
+    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");
@@ -96,7 +96,7 @@ contract PrivateTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCo
     nonReentrant
     returns (address privateSaleAddress)
   {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
+    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");
