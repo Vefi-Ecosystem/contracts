@@ -45,7 +45,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
   }
 
   function createPresale(PresaleInfo memory saleInfo) external payable whenNotPaused nonReentrant returns (address presaleAddress) {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
+    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");
@@ -96,7 +96,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     nonReentrant
     returns (address presaleAddress)
   {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
+    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");

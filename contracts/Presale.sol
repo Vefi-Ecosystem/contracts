@@ -72,8 +72,9 @@ contract Presale is Ownable, ReentrancyGuard, Pausable, ITokenSale {
   }
 
   function withdraw() external whenNotPaused nonReentrant {
-    require(!isSaleEnded || block.timestamp >= saleEndTime, "sale_has_not_ended");
+    require(isSaleEnded || block.timestamp >= saleEndTime, "sale_has_not_ended");
     TransferHelpers._safeTransferERC20(token, _msgSender(), balances[_msgSender()]);
+
     delete balances[_msgSender()];
   }
 
@@ -109,5 +110,17 @@ contract Presale is Ownable, ReentrancyGuard, Pausable, ITokenSale {
 
   function switchBanAddress(address account) external onlyOwner {
     isBanned[account] = !isBanned[account];
+  }
+
+  function pause() external onlyOwner {
+    _pause();
+  }
+
+  function unpause() external onlyOwner {
+    _unpause();
+  }
+
+  function isPaused() external view returns (bool) {
+    return paused();
   }
 }
