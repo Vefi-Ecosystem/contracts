@@ -62,7 +62,7 @@ contract PresaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
     hardcap = saleInfo.hardcap;
     tokensPerEther = saleInfo.tokensPerEther;
     saleStartTime = saleInfo.saleStartTime;
-    saleEndTime = saleInfo.saleStartTime.add(saleInfo.daysToLast);
+    saleEndTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
     saleCreatorPercentage = _saleCreatorPercentage;
     minContribution = saleInfo.minContributionEther;
     maxContribution = saleInfo.maxContributionEther;

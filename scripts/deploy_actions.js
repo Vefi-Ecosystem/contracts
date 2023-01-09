@@ -9,7 +9,8 @@ const coinGeckID = {
   311: "omax-token",
   86: "gatechain-token",
   888: "wanchain",
-  66: "oec-token"
+  66: "oec-token",
+  137: "matic-network"
 };
 
 (async () => {
