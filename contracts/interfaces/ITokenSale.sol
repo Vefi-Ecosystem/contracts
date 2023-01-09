@@ -46,6 +46,8 @@ interface ITokenSale {
 
   function emergencyWithdraw() external;
 
+  function withdraw() external;
+
   function finalizeSale() external;
 
   function saleType() external view returns (SaleType);

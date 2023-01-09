@@ -2,39 +2,53 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./StakingPool.sol";
 import "./helpers/TransferHelper.sol";
 
 contract StakingPoolActions is Ownable, AccessControl {
+  using Address for address;
   uint256 public deploymentFee;
 
   bytes32 public feeTakerRole = keccak256(abi.encodePacked("FEE_TAKER_ROLE"));
   bytes32 public feeSetterRole = keccak256(abi.encodePacked("FEE_SETTER_ROLE"));
+  bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
 
-  mapping(address => address[]) public stakingPools;
-
-  event StakingPoolDeployed(address poolId, address owner, address token0, address token1, uint256 apy1, uint256 apy2, uint256 tax);
+  event StakingPoolDeployed(address poolId, address owner, address token0, address token1, uint256 apy, uint256 tax);
 
   constructor(uint256 _deploymentFee) {
     deploymentFee = _deploymentFee;
     _grantRole(feeTakerRole, _msgSender());
     _grantRole(feeSetterRole, _msgSender());
+    _grantRole(excludedFromFeeRole, _msgSender());
   }
 
   function deployStakingPool(
     address token0,
     address token1,
-    uint16 apy1,
-    uint16 apy2,
+    uint16 apy,
     uint8 taxPercentage,
-    uint256 withdrawalIntervals
+    address taxRecipient,
+    uint256 withdrawalIntervals,
+    uint256 initialAmount
   ) external payable returns (address poolId) {
-    require(msg.value >= deploymentFee);
+    if (token1 == address(0)) {
+      uint256 a;
+      if (!hasRole(excludedFromFeeRole, _msgSender())) {
+        a = initialAmount + deploymentFee;
+      } else a = initialAmount;
+
+      require(msg.value >= a, "fee or amount for ether reward");
+    } else {
+      if (!hasRole(excludedFromFeeRole, _msgSender())) require(msg.value >= deploymentFee, "fee");
+    }
+
     bytes memory bytecode = abi.encodePacked(
       type(StakingPool).creationCode,
-      abi.encode(_msgSender(), token0, token1, apy1, apy2, taxPercentage, withdrawalIntervals)
+      abi.encode(_msgSender(), token0, token1, apy, taxPercentage, taxRecipient, withdrawalIntervals)
     );
-    bytes32 salt = keccak256(abi.encodePacked(token0, token1, apy1, apy2, _msgSender(), block.timestamp));
+    bytes32 salt = keccak256(abi.encodePacked(token0, token1, apy, _msgSender(), block.timestamp));
 
     assembly {
       poolId := create2(0, add(bytecode, 32), mload(bytecode), salt)
@@ -42,11 +56,14 @@ contract StakingPoolActions is Ownable, AccessControl {
         revert(0, 0)
       }
     }
-
-    address[] storage usersPools = stakingPools[_msgSender()];
-    usersPools.push(poolId);
-
-    emit StakingPoolDeployed(poolId, _msgSender(), token0, token1, apy1, apy2, taxPercentage);
+    if (token1 != address(0) && token1.isContract()) {
+      require(IERC20(token1).allowance(_msgSender(), address(this)) >= initialAmount, "not enough allowance");
+      TransferHelpers._safeTransferFromERC20(token1, _msgSender(), poolId, initialAmount);
+    } else {
+      TransferHelpers._safeTransferEther(poolId, initialAmount);
+    }
+    
+    emit StakingPoolDeployed(poolId, _msgSender(), token0, token1, apy, taxPercentage);
   }
 
   function withdrawEther(address to) external {
@@ -86,6 +103,16 @@ contract StakingPoolActions is Ownable, AccessControl {
   function removeFeeTaker(address account) external onlyOwner {
     require(hasRole(feeTakerRole, account));
     _revokeRole(feeTakerRole, account);
+  }
+
+  function excludeFromFee(address account) external onlyOwner {
+    require(!hasRole(excludedFromFeeRole, account));
+    _grantRole(excludedFromFeeRole, account);
+  }
+
+  function includeInFee(address account) external onlyOwner {
+    require(hasRole(excludedFromFeeRole, account));
+    _revokeRole(excludedFromFeeRole, account);
   }
 
   receive() external payable {}
