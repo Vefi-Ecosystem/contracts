@@ -9,7 +9,7 @@ struct PresaleInfo {
   uint256 minContributionEther;
   uint256 maxContributionEther;
   uint256 saleStartTime;
-  uint256 daysToLast;
+  int256 daysToLast;
   address proceedsTo;
   address admin;
 }
@@ -23,7 +23,7 @@ struct PrivateSaleInfo {
   uint256 minContributionEther;
   uint256 maxContributionEther;
   uint256 saleStartTime;
-  uint256 daysToLast;
+  int256 daysToLast;
   address proceedsTo;
   address admin;
   address[] whitelist;

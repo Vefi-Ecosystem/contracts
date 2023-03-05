@@ -17,7 +17,6 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
   using Address for address;
   using SafeMath for uint256;
 
-  address[] public allTokenSales;
   bytes32 public withdrawerRole = keccak256(abi.encodePacked("WITHDRAWER_ROLE"));
 
   uint8 public feePercentage;
@@ -44,8 +43,14 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     saleCreationFee = _saleCreationFee;
   }
 
-  function createPresale(PresaleInfo memory saleInfo) external payable whenNotPaused nonReentrant returns (address presaleAddress) {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
+  function createPresale(PresaleInfo memory saleInfo, string memory metadataURI)
+    external
+    payable
+    whenNotPaused
+    nonReentrant
+    returns (address presaleAddress)
+  {
+    uint256 endTime = saleInfo.saleStartTime.add(uint256(saleInfo.daysToLast) * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");
@@ -57,7 +62,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(type(Presale).creationCode, abi.encode(saleInfo, feePercentage));
+      bytes memory bytecode = abi.encodePacked(type(Presale).creationCode, abi.encode(saleInfo, feePercentage, metadataURI));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
@@ -71,7 +76,6 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      allTokenSales.push(presaleAddress);
       emit TokenSaleItemCreated(
         presaleAddress,
         saleInfo.token,
@@ -89,14 +93,12 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
   }
 
-  function createPresaleVestable(PresaleInfo memory saleInfo, VestingSchedule[] memory vestingSchedule)
-    external
-    payable
-    whenNotPaused
-    nonReentrant
-    returns (address presaleAddress)
-  {
-    uint256 endTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
+  function createPresaleVestable(
+    PresaleInfo memory saleInfo,
+    VestingSchedule[] memory vestingSchedule,
+    string memory metadataURI
+  ) external payable whenNotPaused nonReentrant returns (address presaleAddress) {
+    uint256 endTime = saleInfo.saleStartTime.add(uint256(saleInfo.daysToLast) * 1 days);
 
     {
       require(msg.value >= saleCreationFee, "fee");
@@ -108,7 +110,7 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      bytes memory bytecode = abi.encodePacked(type(PresaleVestable).creationCode, abi.encode(saleInfo, feePercentage, vestingSchedule));
+      bytes memory bytecode = abi.encodePacked(type(PresaleVestable).creationCode, abi.encode(saleInfo, feePercentage, vestingSchedule, metadataURI));
       bytes32 salt = keccak256(abi.encodePacked(block.timestamp, address(this), saleInfo.admin, saleInfo.token));
 
       assembly {
@@ -122,7 +124,6 @@ contract PublicTokenSaleCreator is ReentrancyGuard, Pausable, Ownable, AccessCon
     }
 
     {
-      allTokenSales.push(presaleAddress);
       emit TokenSaleItemCreated(
         presaleAddress,
         saleInfo.token,

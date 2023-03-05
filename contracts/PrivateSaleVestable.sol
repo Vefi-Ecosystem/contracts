@@ -32,6 +32,8 @@ contract PrivateSaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
 
   bool public isSaleEnded;
 
+  string public metadataURI;
+
   mapping(address => uint256) public balances;
   mapping(address => uint256) public amountContributed;
   mapping(address => bool) public isBanned;
@@ -54,7 +56,8 @@ contract PrivateSaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
   constructor(
     PrivateSaleInfo memory saleInfo,
     uint8 _saleCreatorPercentage,
-    VestingSchedule[] memory _vestingSchedule
+    VestingSchedule[] memory _vestingSchedule,
+    string memory _metadataURI
   ) {
     token = saleInfo.token;
     saleCreator = _msgSender();
@@ -64,11 +67,12 @@ contract PrivateSaleVestable is Ownable, ReentrancyGuard, Pausable, ITokenSale {
     hardcap = saleInfo.hardcap;
     tokensPerEther = saleInfo.tokensPerEther;
     saleStartTime = saleInfo.saleStartTime;
-    saleEndTime = saleInfo.saleStartTime.add(saleInfo.daysToLast * 1 days);
+    saleEndTime = saleInfo.saleStartTime.add(uint256(saleInfo.daysToLast) * 1 days);
     saleCreatorPercentage = _saleCreatorPercentage;
     minContribution = saleInfo.minContributionEther;
     maxContribution = saleInfo.maxContributionEther;
     admin = saleInfo.admin;
+    metadataURI = _metadataURI;
 
     for (uint256 i = 0; i < saleInfo.whitelist.length; i++) _switchWhitelistAddress(saleInfo.whitelist[i]);
 

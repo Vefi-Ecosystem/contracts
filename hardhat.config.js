@@ -13,6 +13,7 @@ module.exports = {
   solidity: {
     version: "0.8.17",
     settings: {
+      viaIR: true,
       optimizer: {
         enabled: true,
         runs: 200
@@ -31,7 +32,7 @@ module.exports = {
       chainId: 97
     },
     bitgert_mainnet: {
-      url: "https://nodes.vefinetwork.org/bitgert",
+      url: "https://rpc.icecreamswap.com",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 32520
     },

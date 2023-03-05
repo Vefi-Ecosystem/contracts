@@ -15,7 +15,7 @@ contract StakingPoolActions is Ownable, AccessControl {
   bytes32 public feeSetterRole = keccak256(abi.encodePacked("FEE_SETTER_ROLE"));
   bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
 
-  event StakingPoolDeployed(address poolId, address owner, address token0, address token1, uint256 apy, uint256 tax);
+  event StakingPoolDeployed(address poolId, address owner, address token0, address token1, uint256 apy, uint8 tax, uint256 endsIn);
 
   constructor(uint256 _deploymentFee) {
     deploymentFee = _deploymentFee;
@@ -31,7 +31,8 @@ contract StakingPoolActions is Ownable, AccessControl {
     uint8 taxPercentage,
     address taxRecipient,
     uint256 withdrawalIntervals,
-    uint256 initialAmount
+    uint256 initialAmount,
+    int256 daysToLast
   ) external payable returns (address poolId) {
     if (token1 == address(0)) {
       uint256 a;
@@ -44,9 +45,10 @@ contract StakingPoolActions is Ownable, AccessControl {
       if (!hasRole(excludedFromFeeRole, _msgSender())) require(msg.value >= deploymentFee, "fee");
     }
 
+    uint256 endsIn = block.timestamp + (uint256(daysToLast) * 1 days);
     bytes memory bytecode = abi.encodePacked(
       type(StakingPool).creationCode,
-      abi.encode(_msgSender(), token0, token1, apy, taxPercentage, taxRecipient, withdrawalIntervals)
+      abi.encode(_msgSender(), token0, token1, apy, taxPercentage, taxRecipient, withdrawalIntervals, endsIn)
     );
     bytes32 salt = keccak256(abi.encodePacked(token0, token1, apy, _msgSender(), block.timestamp));
 
@@ -62,8 +64,8 @@ contract StakingPoolActions is Ownable, AccessControl {
     } else {
       TransferHelpers._safeTransferEther(poolId, initialAmount);
     }
-    
-    emit StakingPoolDeployed(poolId, _msgSender(), token0, token1, apy, taxPercentage);
+
+    emit StakingPoolDeployed(poolId, _msgSender(), token0, token1, apy, taxPercentage, endsIn);
   }
 
   function withdrawEther(address to) external {

@@ -24,11 +24,14 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
   uint8 public stakingPoolTax;
   uint256 public withdrawalIntervals;
   uint256 private totalStaked;
+  uint256 public endsIn;
 
   mapping(address => bool) public blockedAddresses;
   mapping(address => uint256) public amountStaked;
   mapping(address => uint256) public lastStakeTime;
   mapping(address => uint256) public nextWithdrawalTime;
+
+  bool private isPoolWiped;
 
   constructor(
     address newOwner,
@@ -37,10 +40,11 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     uint16 _apy,
     uint8 poolTax,
     address _taxRecipient,
-    uint256 intervals
+    uint256 intervals,
+    uint256 _endsIn
   ) {
     require(token0 == address(0) || token0.isContract(), "token 0 must be zero address or contract");
-    require(token1 == address(0) || token1.isContract(), "token 0 must be zero address or contract");
+    require(token1 == address(0) || token1.isContract(), "token 1 must be zero address or contract");
     tokenA = token0;
     rewardToken = token1;
     apy = _apy;
@@ -52,12 +56,14 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     }
 
     taxRecipient = _taxRecipient;
+    endsIn = _endsIn;
     _grantRole(pauserRole, _msgSender());
     _grantRole(pauserRole, newOwner);
     _transferOwnership(newOwner);
   }
 
   function _stake(uint256 amount) private whenNotPaused {
+    require(block.timestamp < endsIn, "staking has ended");
     require(!blockedAddresses[_msgSender()], "account has been blocked");
     require(amount > 0, "amount must be greater than 0");
 
@@ -124,6 +130,7 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
   }
 
   function withdrawRewards() external whenNotPaused nonReentrant {
+    require(block.timestamp < endsIn, "rewards are no longer distributed");
     require(!blockedAddresses[_msgSender()], "account has been blocked");
     require(block.timestamp >= nextWithdrawalTime[_msgSender()], "not time for withdrawal");
     uint256 reward = calculateReward(_msgSender());
@@ -136,7 +143,7 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     emit Withdrawal(_msgSender(), reward);
   }
 
-  function retrieveEther(address to) external onlyOwner {
+  function retrieveEther(address to) public onlyOwner {
     if (tokenA == address(0)) {
       uint256 amount = address(this).balance.sub(totalStaked);
       TransferHelpers._safeTransferEther(to, amount);
@@ -145,13 +152,14 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
 
   function setStakingPoolTax(uint8 poolTax) external onlyOwner {
     stakingPoolTax = poolTax;
+    emit TaxPercentageChanged(poolTax);
   }
 
   function retrieveERC20(
     address token,
     address to,
     uint256 amount
-  ) external onlyOwner {
+  ) public onlyOwner {
     require(token.isContract(), "must_be_contract_address");
 
     if (tokenA == token) {
@@ -159,6 +167,18 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
       uint256 a = bal.sub(totalStaked);
       if (a > 0) TransferHelpers._safeTransferERC20(token, to, a);
     } else TransferHelpers._safeTransferERC20(token, to, amount);
+  }
+
+  function wipePoolOfRewardTokens(address to) external {
+    require(block.timestamp >= endsIn, "staking is still on");
+    require(!isPoolWiped, "pool already wiped");
+    if (rewardToken == address(0)) retrieveEther(to);
+    else {
+      uint256 bal = IERC20(rewardToken).balanceOf(address(this));
+      retrieveERC20(rewardToken, to, bal);
+    }
+
+    isPoolWiped = true;
   }
 
   function pause() external {
