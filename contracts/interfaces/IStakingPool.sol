@@ -4,6 +4,7 @@ interface IStakingPool {
   event Stake(address account, uint256 amount, uint256 timestamp);
   event Unstake(address account, uint256 amount);
   event Withdrawal(address account, uint256 amount);
+  event TaxPercentageChanged(uint8 newTaxPercentage);
 
   function blockedAddresses(address) external view returns (bool);
 

@@ -57,4 +57,6 @@ interface ITokenSale {
   function unpause() external;
 
   function isPaused() external view returns (bool);
+
+  function metadataURI() external view returns (string memory);
 }
