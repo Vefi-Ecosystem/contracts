@@ -4,5 +4,5 @@ struct VestingSchedule {
   uint8 percentage;
   uint256 startTime;
   uint256 endTime;
-  uint256 withdrawalIntervals;
+  uint256 releaseIntervals;
 }
