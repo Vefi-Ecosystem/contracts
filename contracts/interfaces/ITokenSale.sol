@@ -1,13 +1,6 @@
 pragma solidity ^0.8.0;
 
 interface ITokenSale {
-  enum SaleType {
-    PUBLIC_REGULAR,
-    PUBLIC_VESTABLE,
-    PRIVATE_REGULAR,
-    PRIVATE_VESTABLE
-  }
-
   function token() external view returns (address);
 
   function tokensAvailableForSale() external view returns (uint256);
@@ -49,8 +42,6 @@ interface ITokenSale {
   function withdraw() external;
 
   function finalizeSale() external;
-
-  function saleType() external view returns (SaleType);
 
   function pause() external;
 

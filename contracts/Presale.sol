@@ -5,129 +5,107 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./interfaces/ITokenSale.sol";
-import "./misc/SaleInfo.sol";
-import "./helpers/TransferHelper.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "./Purchasable.sol";
+import "./Fundable.sol";
+import "./Vestable.sol";
+import "./Whitelistable.sol";
 
-contract Presale is Ownable, ReentrancyGuard, Pausable, ITokenSale {
-  using SafeMath for uint256;
-  using Address for address;
-
-  address public immutable token;
-  address public immutable saleCreator;
-  address public immutable proceedsTo;
-  address public immutable admin;
-
-  uint256 public tokensAvailableForSale;
-  uint256 public immutable tokensPerEther;
-  uint256 public immutable softcap;
-  uint256 public immutable hardcap;
-  uint256 public immutable saleStartTime;
-  uint256 public immutable saleEndTime;
-  uint256 public immutable minContribution;
-  uint256 public immutable maxContribution;
-
-  uint8 public saleCreatorPercentage;
-
-  bool public isSaleEnded;
+contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
+  mapping(address => uint256) public claimable;
+  mapping(address => uint256) public totalPurchased;
 
   string public metadataURI;
 
-  mapping(address => uint256) public balances;
-  mapping(address => uint256) public amountContributed;
-  mapping(address => bool) public isBanned;
-
-  SaleType public constant saleType = SaleType.PUBLIC_REGULAR;
-
-  modifier ifParamsSatisfied() {
-    require(block.timestamp >= saleStartTime, "token_sale_not_started_yet");
-    require(!isSaleEnded, "token_sale_has_ended");
-    require(!isBanned[_msgSender()], "you_are_not_allowed_to_participate_in_this_sale");
-    require(address(this).balance < hardcap, "hardcap_reached");
-    _;
-  }
-
   constructor(
-    PresaleInfo memory saleInfo,
-    uint8 _saleCreatorPercentage,
-    string memory _metadataURI
-  ) {
-    token = saleInfo.token;
-    saleCreator = _msgSender();
-    proceedsTo = saleInfo.proceedsTo;
-    tokensAvailableForSale = saleInfo.tokensForSale;
-    softcap = saleInfo.softcap;
-    hardcap = saleInfo.hardcap;
-    tokensPerEther = saleInfo.tokensPerEther;
-    saleStartTime = saleInfo.saleStartTime;
-    saleEndTime = saleInfo.saleStartTime.add(uint256(saleInfo.daysToLast) * 1 days);
-    saleCreatorPercentage = _saleCreatorPercentage;
-    minContribution = saleInfo.minContributionEther;
-    maxContribution = saleInfo.maxContributionEther;
-    admin = saleInfo.admin;
+    string memory _metadataURI,
+    address _funder,
+    uint256 _salePrice,
+    ERC20 _paymentToken,
+    ERC20 _saleToken,
+    uint256 _startTime,
+    uint256 _endTime,
+    uint256 _maxTotalPayment
+  )
+    Purchasable(_paymentToken, _salePrice, _maxTotalPayment)
+    Vestable(_endTime)
+    Fundable(_paymentToken, _saleToken, _startTime, _endTime, _funder)
+    Whitelistable()
+  {
     metadataURI = _metadataURI;
-    _transferOwnership(saleInfo.admin);
   }
 
-  function contribute() external payable nonReentrant whenNotPaused ifParamsSatisfied {
-    require(msg.value >= minContribution && msg.value <= maxContribution, "contribution_must_be_within_min_and_max_range");
-    uint256 val = tokensPerEther.mul(msg.value).div(1 ether);
-    require(tokensAvailableForSale >= val, "tokens_available_for_sale_is_less");
-    balances[_msgSender()] = balances[_msgSender()].add(val);
-    amountContributed[_msgSender()] = amountContributed[_msgSender()].add(msg.value);
-    tokensAvailableForSale = tokensAvailableForSale.sub(val);
+  function setWithdrawDelay(uint24 _withdrawDelay) public override onlyOwner onlyBeforeSale {
+    setWithdrawTime(endTime + _withdrawDelay);
+    super.setWithdrawDelay(_withdrawDelay);
   }
 
-  function withdraw() external whenNotPaused nonReentrant {
-    require(isSaleEnded || block.timestamp >= saleEndTime, "sale_has_not_ended");
-    TransferHelpers._safeTransferERC20(token, _msgSender(), balances[_msgSender()]);
-
-    delete balances[_msgSender()];
+  function setLinearVestingEndTime(uint256 _vestingEndTime) public override onlyOwner onlyBeforeSale {
+    super.setLinearVestingEndTime(_vestingEndTime);
   }
 
-  function emergencyWithdraw() external nonReentrant {
-    require(!isSaleEnded, "sale_has_already_ended");
-    TransferHelpers._safeTransferEther(_msgSender(), amountContributed[_msgSender()]);
-    tokensAvailableForSale = tokensAvailableForSale.add(balances[_msgSender()]);
-    delete balances[_msgSender()];
-    delete amountContributed[_msgSender()];
+  function setCliffPeriod(uint256[] calldata claimTimes, uint8[] calldata pct) public override onlyOwner onlyBeforeSale {
+    super.setCliffPeriod(claimTimes, pct);
   }
 
-  function finalizeSale() external whenNotPaused onlyOwner {
-    require(!isSaleEnded, "sale_has_ended");
-    uint256 saleCreatorProfit = (address(this).balance * uint256(saleCreatorPercentage)).div(100);
-    TransferHelpers._safeTransferEther(proceedsTo, address(this).balance.sub(saleCreatorProfit));
-    TransferHelpers._safeTransferEther(saleCreator, saleCreatorProfit);
+  function purchase(uint256 paymentAmount) public virtual override onlyDuringSale {
+    require(whitelistRootHash == 0, "use whitelisted purchase");
+    _purchase(paymentAmount, maxTotalPayment);
+  }
 
-    if (tokensAvailableForSale > 0) {
-      TransferHelpers._safeTransferERC20(token, proceedsTo, tokensAvailableForSale);
+  function whitelistedPurchase(uint256 paymentAmount, bytes32[] calldata merkleProof) public virtual override onlyDuringSale {
+    require(checkWhitelist(_msgSender(), merkleProof), "proof invalid");
+    _purchase(paymentAmount, maxTotalPayment);
+  }
+
+  function withdraw() public virtual override onlyAfterSale nonReentrant {
+    address user = _msgSender();
+    require(salePrice != 0, "use withdraw giveaway");
+
+    uint256 tokenOwed = getCurrentClaimableToken(user);
+    _withdraw(tokenOwed);
+    require(tokenOwed != 0, "no token to be withdrawn");
+  }
+
+  function withdrawGiveaway(bytes32[] calldata merkleProof) public virtual override onlyAfterSale nonReentrant {
+    address user = _msgSender();
+    require(salePrice == 0, "not a giveaway");
+    require(whitelistRootHash == 0 || checkWhitelist(user, merkleProof), "proof invalid");
+
+    uint256 tokenOwed = getCurrentClaimableToken(user);
+    if (!hasWithdrawn[user]) {
+      claimable[user] = tokenOwed;
+      totalPurchased[user] = tokenOwed;
     }
-
-    isSaleEnded = true;
+    _withdraw(tokenOwed);
+    require(tokenOwed != 0, "withdraw giveaway amount 0");
   }
 
-  function retrieveERC20(
-    address _token,
-    address _to,
-    uint256 _amount
-  ) external onlyOwner {
-    require(_token.isContract(), "must_be_contract_address");
-    TransferHelpers._safeTransferERC20(_token, _to, _amount);
+  function _purchase(uint256 paymentAmount, uint256 remaining) internal override {
+    totalPaymentReceived += paymentAmount;
+    super._purchase(paymentAmount, remaining);
+
+    uint256 tokenPurchased = (paymentReceived[_msgSender()] * SALE_PRICE_DECIMALS) / salePrice;
+    totalPurchased[_msgSender()] = tokenPurchased;
+    claimable[_msgSender()] = tokenPurchased;
   }
 
-  function switchBanAddress(address account) external onlyOwner {
-    isBanned[account] = !isBanned[account];
+  function _withdraw(uint256 tokenOwed) internal override {
+    super._withdraw(tokenOwed);
+    latestClaimTime[_msgSender()] = block.timestamp;
+    claimable[_msgSender()] -= tokenOwed;
   }
 
-  function pause() external onlyOwner {
-    _pause();
+  function getSaleTokensSold() internal view override returns (uint256 amount) {
+    return (totalPaymentReceived * SALE_PRICE_DECIMALS) / salePrice;
   }
 
-  function unpause() external onlyOwner {
-    _unpause();
+  function getCurrentClaimableToken(address user) public view returns (uint256) {
+    return getUnlockedToken(totalPurchased[user], claimable[user], user);
   }
 
-  function isPaused() external view returns (bool) {
-    return paused();
+  function checkWhitelist(address user, bytes32[] calldata merkleProof) public view virtual returns (bool) {
+    bytes32 leaf = keccak256(abi.encodePacked(user));
+    return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
   }
 }
