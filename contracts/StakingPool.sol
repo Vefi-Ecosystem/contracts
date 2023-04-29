@@ -66,6 +66,7 @@ contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStak
     require(block.timestamp < endsIn, "staking has ended");
     require(!blockedAddresses[_msgSender()], "account has been blocked");
     require(amount > 0, "amount must be greater than 0");
+    require(!isPoolWiped, "pool is wiped");
 
     if (tokenA != address(0)) {
       require(IERC20(tokenA).allowance(_msgSender(), address(this)) >= amount, "not enough allowance is given");

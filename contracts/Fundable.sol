@@ -75,7 +75,7 @@ abstract contract Fundable is Ownable, AccessControl, ReentrancyGuard {
 
   modifier onlyDuringSale() {
     require(startTime <= block.timestamp, "sale has not begun");
-    require(block.timestamp <= endTime, "sale over");
+    require(block.timestamp < endTime, "sale over");
     _;
   }
 

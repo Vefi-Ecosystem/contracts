@@ -69,7 +69,7 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
     require(tokenOwed != 0, "no token to be withdrawn");
   }
 
-  function emergencyWithdraw() public virtual nonReentrant {
+  function emergencyWithdraw() public nonReentrant {
     address user = _msgSender();
     require(!hasCashed, "sale has been cashed already");
     require(!hasWithdrawn[user], "cannot use emergency withdrawal after regular withdrawal");
