@@ -17,6 +17,8 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
 
   string public metadataURI;
 
+  event EmergencyWithdrawal(address indexed user);
+
   constructor(
     string memory _metadataURI,
     address _funder,
@@ -60,11 +62,27 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
 
   function withdraw() public virtual override onlyAfterSale nonReentrant {
     address user = _msgSender();
-    require(salePrice != 0, "use withdraw giveaway");
+    require(salePrice > 0, "use withdraw giveaway");
 
     uint256 tokenOwed = getCurrentClaimableToken(user);
     _withdraw(tokenOwed);
     require(tokenOwed != 0, "no token to be withdrawn");
+  }
+
+  function emergencyWithdraw() public nonReentrant {
+    address user = _msgSender();
+    require(!hasCashed, "sale has been cashed already");
+    require(!hasWithdrawn[user], "cannot use emergency withdrawal after regular withdrawal");
+    TransferHelpers._safeTransferERC20(address(paymentToken), user, paymentReceived[user]);
+
+    totalPaymentReceived -= paymentReceived[user];
+
+    purchaserCount -= 1;
+    paymentReceived[user] = 0;
+    totalPurchased[user] = 0;
+    claimable[user] = 0;
+
+    emit EmergencyWithdrawal(user);
   }
 
   function withdrawGiveaway(bytes32[] calldata merkleProof) public virtual override onlyAfterSale nonReentrant {
@@ -78,7 +96,7 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
       totalPurchased[user] = tokenOwed;
     }
     _withdraw(tokenOwed);
-    require(tokenOwed != 0, "withdraw giveaway amount 0");
+    require(tokenOwed > 0, "withdraw giveaway amount low");
   }
 
   function _purchase(uint256 paymentAmount, uint256 remaining) internal override {
