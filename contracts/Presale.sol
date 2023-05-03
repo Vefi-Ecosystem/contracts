@@ -18,6 +18,7 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
   string public metadataURI;
 
   event EmergencyWithdrawal(address indexed user);
+  event MetadataURIChanged(string metadataURI);
 
   constructor(
     string memory _metadataURI,
@@ -125,5 +126,10 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
   function checkWhitelist(address user, bytes32[] calldata merkleProof) public view virtual returns (bool) {
     bytes32 leaf = keccak256(abi.encodePacked(user));
     return MerkleProof.verify(merkleProof, whitelistRootHash, leaf);
+  }
+
+  function setMetadataURI(string memory _metadataURI) external onlyOwner {
+    metadataURI = _metadataURI;
+    emit MetadataURIChanged(_metadataURI);
   }
 }

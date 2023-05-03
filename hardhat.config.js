@@ -3,7 +3,8 @@ require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("@nomiclabs/hardhat-etherscan");
-require("@nomiclabs/hardhat-ganache");
+require("solidity-coverage");
+// require("@nomiclabs/hardhat-ganache");
 
 require("dotenv").config();
 /**
@@ -16,7 +17,7 @@ module.exports = {
       viaIR: true,
       optimizer: {
         enabled: true,
-        runs: 200
+        runs: 100
       }
     }
   },

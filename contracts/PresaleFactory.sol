@@ -35,7 +35,7 @@ contract PresaleFactory is Ownable, AccessControl {
   constructor(
     address router,
     address _usd,
-    uint8 _usdFee,
+    uint16 _usdFee,
     address _feeCollector
   ) {
     USD = _usd;
@@ -47,6 +47,7 @@ contract PresaleFactory is Ownable, AccessControl {
 
   function deploySale(
     string memory metadataURI,
+    address newOwner,
     address funder,
     uint256 salePrice,
     address paymentToken,
@@ -68,7 +69,7 @@ contract PresaleFactory is Ownable, AccessControl {
     );
     bytes32 salt = keccak256(abi.encodePacked(_msgSender(), funder, block.timestamp));
 
-    assembly {
+    assembly ("memory-safe") {
       presaleId := create2(0, add(byteCode, 32), mload(byteCode), salt)
       if iszero(extcodesize(presaleId)) {
         revert(0, "could not deploy sale contract")
@@ -90,6 +91,8 @@ contract PresaleFactory is Ownable, AccessControl {
       TransferHelpers._safeTransferEther(feeCollector, fee);
     }
 
+    pSale.transferOwnership(newOwner);
+
     emit PresaleCreated(
       presaleId,
       metadataURI,
@@ -105,7 +108,7 @@ contract PresaleFactory is Ownable, AccessControl {
     );
   }
 
-  function setUSDFee(uint8 _usdFee) external onlyOwner {
+  function setUSDFee(uint16 _usdFee) external onlyOwner {
     usdFee = uint256(_usdFee) * (10**ERC20(USD).decimals());
   }
 
