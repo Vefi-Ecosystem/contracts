@@ -28,11 +28,14 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
     ERC20 _saleToken,
     uint256 _startTime,
     uint256 _endTime,
-    uint256 _maxTotalPayment
+    uint256 _maxTotalPayment,
+    address _taxCollector,
+    uint16 _taxPercentage,
+    address _taxSetter
   )
     Purchasable(_paymentToken, _salePrice, _maxTotalPayment)
     Vestable(_endTime)
-    Fundable(_paymentToken, _saleToken, _startTime, _endTime, _funder)
+    Fundable(_paymentToken, _saleToken, _startTime, _endTime, _funder, _taxCollector, _taxPercentage, _taxSetter)
     Whitelistable()
   {
     metadataURI = _metadataURI;
@@ -74,6 +77,7 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
     address user = _msgSender();
     require(!hasCashed, "sale has been cashed already");
     require(!hasWithdrawn[user], "cannot use emergency withdrawal after regular withdrawal");
+    require(paymentReceived[user] > 0, "you did not contribute to this sale");
     TransferHelpers._safeTransferERC20(address(paymentToken), user, paymentReceived[user]);
 
     totalPaymentReceived -= paymentReceived[user];

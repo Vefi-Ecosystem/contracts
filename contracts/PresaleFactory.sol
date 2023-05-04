@@ -29,6 +29,7 @@ contract PresaleFactory is Ownable, AccessControl {
   address public feeCollector;
 
   uint256 public usdFee;
+  uint16 public salePercentageForEcosystem;
 
   bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
 
@@ -36,18 +37,21 @@ contract PresaleFactory is Ownable, AccessControl {
     address router,
     address _usd,
     uint16 _usdFee,
-    address _feeCollector
+    address _feeCollector,
+    uint16 _salePercentage
   ) {
     USD = _usd;
     pancakeRouter = IPancakeRouter02(router);
     usdFee = uint256(_usdFee) * (10**ERC20(_usd).decimals());
     feeCollector = _feeCollector;
+    salePercentageForEcosystem = _salePercentage;
     _grantRole(excludedFromFeeRole, _msgSender());
   }
 
   function deploySale(
     string memory metadataURI,
     address newOwner,
+    address casher,
     address funder,
     uint256 salePrice,
     address paymentToken,
@@ -65,7 +69,19 @@ contract PresaleFactory is Ownable, AccessControl {
     require(msg.value >= fee, "fee");
     bytes memory byteCode = abi.encodePacked(
       type(Presale).creationCode,
-      abi.encode(metadataURI, funder, salePrice, paymentToken, saleToken, startTime, endTime, maxTotalPayment)
+      abi.encode(
+        metadataURI,
+        funder,
+        salePrice,
+        paymentToken,
+        saleToken,
+        startTime,
+        endTime,
+        maxTotalPayment,
+        feeCollector,
+        salePercentageForEcosystem,
+        owner()
+      )
     );
     bytes32 salt = keccak256(abi.encodePacked(_msgSender(), funder, block.timestamp));
 
@@ -75,23 +91,6 @@ contract PresaleFactory is Ownable, AccessControl {
         revert(0, "could not deploy sale contract")
       }
     }
-
-    Presale pSale = Presale(presaleId);
-
-    pSale.setMinTotalPayment(minTotalPayment);
-    pSale.setWithdrawDelay(withdrawDelay);
-
-    if (claimTimes.length > 0) {
-      pSale.setCliffPeriod(claimTimes, pct);
-    } else {
-      pSale.setLinearVestingEndTime(pSale.withdrawTime() + 1);
-    }
-
-    if (fee > 0) {
-      TransferHelpers._safeTransferEther(feeCollector, fee);
-    }
-
-    pSale.transferOwnership(newOwner);
 
     emit PresaleCreated(
       presaleId,
@@ -106,6 +105,24 @@ contract PresaleFactory is Ownable, AccessControl {
       maxTotalPayment,
       withdrawDelay
     );
+
+    Presale pSale = Presale(presaleId);
+
+    pSale.setCasher(casher);
+    pSale.setMinTotalPayment(minTotalPayment);
+    pSale.setWithdrawDelay(withdrawDelay);
+
+    if (claimTimes.length > 0) {
+      pSale.setCliffPeriod(claimTimes, pct);
+    } else {
+      pSale.setLinearVestingEndTime(pSale.withdrawTime() + 1);
+    }
+
+    if (fee > 0) {
+      TransferHelpers._safeTransferEther(feeCollector, fee);
+    }
+
+    pSale.transferOwnership(newOwner);
   }
 
   function setUSDFee(uint16 _usdFee) external onlyOwner {
@@ -137,6 +154,10 @@ contract PresaleFactory is Ownable, AccessControl {
 
   function setFeeCollector(address _feeCollector) external onlyOwner {
     feeCollector = _feeCollector;
+  }
+
+  function setSalePercentage(uint16 _salePercentage) external onlyOwner {
+    salePercentageForEcosystem = _salePercentage;
   }
 
   function excludeFromFee(address account) external onlyOwner {
