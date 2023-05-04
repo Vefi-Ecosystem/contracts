@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./helpers/TransferHelper.sol";
+import "./Taxable.sol";
 
-abstract contract Fundable is Ownable, AccessControl, ReentrancyGuard {
+abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   using SafeERC20 for ERC20;
   uint64 constant SALE_PRICE_DECIMALS = 10**18;
   uint64 private constant ONE_HOUR = 3600;
@@ -35,8 +36,11 @@ abstract contract Fundable is Ownable, AccessControl, ReentrancyGuard {
     ERC20 _saleToken,
     uint256 _startTime,
     uint256 _endTime,
-    address _funder
-  ) {
+    address _funder,
+    address _taxCollector,
+    uint16 _taxPercentage,
+    address _taxSetter
+  ) Taxable(_taxCollector, _taxPercentage, _taxSetter) {
     require(_saleToken != _paymentToken, "saleToken = paymentToken");
     require(address(_saleToken) != address(0), "0x0 saleToken");
     require(block.timestamp < _startTime, "start timestamp too early");
@@ -123,8 +127,10 @@ abstract contract Fundable is Ownable, AccessControl, ReentrancyGuard {
     hasCashed = true;
 
     uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
+    uint256 collectorsDue = (taxPercentage * paymentTokenBal) / 100;
+    TransferHelpers._safeTransferERC20(address(paymentToken), _msgSender(), paymentTokenBal - collectorsDue);
 
-    TransferHelpers._safeTransferERC20(address(paymentToken), _msgSender(), paymentTokenBal);
+    if (collectorsDue > 0) TransferHelpers._safeTransferERC20(address(paymentToken), taxCollector, collectorsDue);
 
     uint256 saleTokenBal = saleToken.balanceOf(address(this));
 

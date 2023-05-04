@@ -24,7 +24,7 @@ contract StakingPoolActions is Ownable, AccessControl {
 
   constructor(
     address router,
-    uint8 _deploymentFee,
+    uint16 _deploymentFee,
     address _usd,
     address _feeCollector
   ) {
@@ -78,7 +78,7 @@ contract StakingPoolActions is Ownable, AccessControl {
     emit StakingPoolDeployed(poolId, _msgSender(), token0, token1, apy, taxPercentage, endsIn);
   }
 
-  function setUSDFee(uint8 _usdFee) external onlyOwner {
+  function setUSDFee(uint16 _usdFee) external onlyOwner {
     deploymentFeeUSD = uint256(_usdFee) * (10**ERC20(USD).decimals());
   }
 
