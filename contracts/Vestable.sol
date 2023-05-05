@@ -63,6 +63,7 @@ abstract contract Vestable is Ownable {
     require(totalPct == 100, "total input percentage doesn't equal to 100");
 
     linearVestingEndTime = 0;
+    emit SetCliffVestingPeriod(cliffPeriod);
   }
 
   function getUnlockedToken(
