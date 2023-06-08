@@ -4,3 +4,4 @@ artifacts
 cache
 standard-input*
 *Flat.sol
+.vscode

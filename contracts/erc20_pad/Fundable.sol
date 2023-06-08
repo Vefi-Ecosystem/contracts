@@ -1,11 +1,11 @@
-pragma solidity ^0.8.0;
+pragma solidity >=0.4.22 <=0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./helpers/TransferHelper.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "node_modules/@openzeppelin/contracts/access/AccessControl.sol";
+import "../helpers/TransferHelper.sol";
 import "./Taxable.sol";
 
 abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
@@ -31,6 +31,9 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   uint256 public totalPaymentReceived;
   uint32 public withdrawerCount;
 
+  address public funder;
+  address public casher;
+
   constructor(
     ERC20 _paymentToken,
     ERC20 _saleToken,
@@ -49,7 +52,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
     require(_endTime - TEN_YEARS < _startTime, "end time has to be within 10 years");
 
     require(_funder != address(0), "0x0 funder");
-    _grantRole(FUNDER_ROLE, _funder);
+    funder = _funder;
 
     paymentToken = _paymentToken; // can be 0 (for giveaway)
     saleToken = _saleToken;
@@ -58,12 +61,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   }
 
   modifier onlyFunder() {
-    require(hasRole(FUNDER_ROLE, _msgSender()), "caller not funder");
-    _;
-  }
-
-  modifier onlyCasherOrOwner() {
-    require(hasRole(CASHER_ROLE, _msgSender()) || _msgSender() == owner(), "caller not casher or owner");
+    require(_msgSender() == funder, "caller not funder");
     _;
   }
 
@@ -92,15 +90,8 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   event Withdraw(address indexed sender, uint256 amount);
 
   function setCasher(address _casher) public onlyOwner {
-    require(!hasRole(CASHER_ROLE, _casher), "already casher");
-    _grantRole(CASHER_ROLE, _casher);
+    casher = _casher;
     emit SetCasher(_casher);
-  }
-
-  function removeCasher(address _casher) public onlyOwner {
-    require(hasRole(CASHER_ROLE, _casher), "not casher");
-    _revokeRole(CASHER_ROLE, _casher);
-    emit RemoveCasher(_casher);
   }
 
   function setWithdrawDelay(uint24 _withdrawDelay) public virtual onlyOwner onlyBeforeSale {
@@ -120,7 +111,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
     emit Fund(_msgSender(), amount);
   }
 
-  function cash() external onlyCasherOrOwner {
+  function cash() external onlyOwner {
     require(endTime + withdrawDelay < block.timestamp, "cannot withdraw yet");
     require(!hasCashed, "already cashed");
 
@@ -128,7 +119,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
 
     uint256 paymentTokenBal = paymentToken.balanceOf(address(this));
     uint256 collectorsDue = (taxPercentage * paymentTokenBal) / 100;
-    TransferHelpers._safeTransferERC20(address(paymentToken), _msgSender(), paymentTokenBal - collectorsDue);
+    TransferHelpers._safeTransferERC20(address(paymentToken), casher, paymentTokenBal - collectorsDue);
 
     if (collectorsDue > 0) TransferHelpers._safeTransferERC20(address(paymentToken), taxCollector, collectorsDue);
 
@@ -140,7 +131,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
 
     uint256 amountUnsold = principal - totalTokensSold;
 
-    TransferHelpers._safeTransferERC20(address(saleToken), _msgSender(), amountUnsold);
+    TransferHelpers._safeTransferERC20(address(saleToken), funder, amountUnsold);
 
     emit Cash(_msgSender(), paymentTokenBal, amountUnsold);
   }
