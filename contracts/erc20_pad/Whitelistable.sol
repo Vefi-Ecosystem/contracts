@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "node_modules/@openzeppelin/contracts/access/AccessControl.sol";
 
 abstract contract Whitelistable is Ownable, AccessControl, ReentrancyGuard {
   bytes32 public whitelistRootHash;

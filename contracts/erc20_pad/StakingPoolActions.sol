@@ -1,39 +1,17 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "node_modules/@openzeppelin/contracts/access/AccessControl.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "node_modules/@openzeppelin/contracts/utils/Address.sol";
 import "./StakingPool.sol";
 import "../helpers/TransferHelper.sol";
-import "../interfaces/IPancakeRouter.sol";
-import "../interfaces/IPancakeFactory.sol";
-import "../interfaces/IPancakePair.sol";
 
 contract StakingPoolActions is Ownable, AccessControl {
   using Address for address;
-  uint256 public deploymentFeeUSD;
-  bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
-
-  IPancakeRouter02 pancakeRouter;
-  address USD;
-  address public feeCollector;
 
   event StakingPoolDeployed(address poolId, address owner, address token0, address token1, uint256 apy, uint8 tax, uint256 endsIn);
-
-  constructor(
-    address router,
-    uint16 _deploymentFee,
-    address _usd,
-    address _feeCollector
-  ) {
-    USD = _usd;
-    pancakeRouter = IPancakeRouter02(router);
-    deploymentFeeUSD = uint256(_deploymentFee) * (10**ERC20(_usd).decimals());
-    feeCollector = _feeCollector;
-    _grantRole(excludedFromFeeRole, _msgSender());
-  }
 
   function deployStakingPool(
     address token0,

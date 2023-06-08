@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Address.sol";
+import "node_modules/@openzeppelin/contracts/utils/Address.sol";
 
 library TransferHelpers {
   using Address for address;

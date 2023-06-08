@@ -1,12 +1,9 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "node_modules/@openzeppelin/contracts/access/AccessControl.sol";
 import "./Presale.sol";
-import "../interfaces/IPancakeRouter.sol";
-import "../interfaces/IPancakeFactory.sol";
-import "./interfaces/IPancakePair.sol";
 import "../helpers/TransferHelper.sol";
 
 contract PresaleFactory is Ownable, AccessControl {
@@ -24,29 +21,12 @@ contract PresaleFactory is Ownable, AccessControl {
     uint24 withdrawDelay
   );
 
-  IPancakeRouter02 pancakeRouter;
-  address USD;
+  uint16 public salePercentageForEcosystem;
   address public feeCollector;
 
-  uint256 public usdFee;
-  uint16 public salePercentageForEcosystem;
-
-  bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
-  bool public onlyOwnerCanCreate = true;
-
-  constructor(
-    address router,
-    address _usd,
-    uint16 _usdFee,
-    address _feeCollector,
-    uint16 _salePercentage
-  ) {
-    USD = _usd;
-    pancakeRouter = IPancakeRouter02(router);
-    usdFee = uint256(_usdFee) * (10**ERC20(_usd).decimals());
+  constructor(uint16 _salePercentageForEcosystem, address _feeCollector) {
+    salePercentageForEcosystem = _salePercentageForEcosystem;
     feeCollector = _feeCollector;
-    salePercentageForEcosystem = _salePercentage;
-    _grantRole(excludedFromFeeRole, _msgSender());
   }
 
   function deploySale(
@@ -64,14 +44,8 @@ contract PresaleFactory is Ownable, AccessControl {
     uint256[] calldata claimTimes,
     uint8[] calldata pct,
     uint24 withdrawDelay
-  ) external payable returns (address presaleId) {
-    if (onlyOwnerCanCreate) {
-      require(_msgSender() == owner(), "only owner can create");
-    }
-
-    uint256 fee = getDeploymentFeeETHER(_msgSender());
+  ) external onlyOwner returns (address presaleId) {
     uint256 endTime = startTime + (uint256(daysToLast) * 1 days);
-    require(msg.value >= fee, "fee");
     bytes memory byteCode = abi.encodePacked(
       type(Presale).creationCode,
       abi.encode(
@@ -123,26 +97,7 @@ contract PresaleFactory is Ownable, AccessControl {
       pSale.setLinearVestingEndTime(pSale.withdrawTime() + 1);
     }
 
-    if (fee > 0) {
-      TransferHelpers._safeTransferEther(feeCollector, fee);
-    }
-
     pSale.transferOwnership(newOwner);
-  }
-
-  function setUSDFee(uint16 _usdFee) external onlyOwner {
-    usdFee = uint256(_usdFee) * (10**ERC20(USD).decimals());
-  }
-
-  function getDeploymentFeeETHER(address payer) public view returns (uint256 deploymentFee) {
-    if (hasRole(excludedFromFeeRole, payer)) deploymentFee = 0;
-    else {
-      IPancakeFactory factory = IPancakeFactory(pancakeRouter.factory());
-      IPancakePair usdWETHPair = IPancakePair(factory.getPair(USD, pancakeRouter.WETH()));
-      (uint112 reserve0, uint112 reserve1, ) = usdWETHPair.getReserves();
-      (uint112 reserveA, uint112 reserveB) = usdWETHPair.token0() == USD ? (reserve0, reserve1) : (reserve1, reserve0);
-      deploymentFee = pancakeRouter.quote(usdFee, reserveA, reserveB);
-    }
   }
 
   function withdrawToken(
@@ -157,22 +112,12 @@ contract PresaleFactory is Ownable, AccessControl {
     TransferHelpers._safeTransferEther(to, address(this).balance);
   }
 
+  function setEcosystemPercentage(uint16 ecosystemPercentage) external onlyOwner {
+    salePercentageForEcosystem = ecosystemPercentage;
+  }
+
   function setFeeCollector(address _feeCollector) external onlyOwner {
     feeCollector = _feeCollector;
-  }
-
-  function setSalePercentage(uint16 _salePercentage) external onlyOwner {
-    salePercentageForEcosystem = _salePercentage;
-  }
-
-  function excludeFromFee(address account) external onlyOwner {
-    require(!hasRole(excludedFromFeeRole, account));
-    _grantRole(excludedFromFeeRole, account);
-  }
-
-  function includeInFee(address account) external onlyOwner {
-    require(hasRole(excludedFromFeeRole, account));
-    _revokeRole(excludedFromFeeRole, account);
   }
 
   receive() external payable {}

@@ -1,11 +1,11 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "./helpers/TransferHelper.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "node_modules/@openzeppelin/contracts/utils/Address.sol";
+import "../helpers/TransferHelper.sol";
 
 abstract contract Purchasable is Ownable, ReentrancyGuard {
   using Address for address;
