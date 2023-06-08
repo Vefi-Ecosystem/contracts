@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./StakingPool.sol";
-import "./helpers/TransferHelper.sol";
-import "./interfaces/IPancakeRouter.sol";
-import "./interfaces/IPancakeFactory.sol";
-import "./interfaces/IPancakePair.sol";
+import "../helpers/TransferHelper.sol";
+import "../interfaces/IPancakeRouter.sol";
+import "../interfaces/IPancakeFactory.sol";
+import "../interfaces/IPancakePair.sol";
 
 contract StakingPoolActions is Ownable, AccessControl {
   using Address for address;

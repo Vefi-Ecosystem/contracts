@@ -1,11 +1,11 @@
-pragma solidity ^0.8.0;
+pragma solidity >=0.4.22 <=0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./helpers/TransferHelper.sol";
+import "../helpers/TransferHelper.sol";
 import "./Taxable.sol";
 
 abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {

@@ -4,10 +4,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Presale.sol";
-import "./interfaces/IPancakeRouter.sol";
-import "./interfaces/IPancakeFactory.sol";
+import "../interfaces/IPancakeRouter.sol";
+import "../interfaces/IPancakeFactory.sol";
 import "./interfaces/IPancakePair.sol";
-import "./helpers/TransferHelper.sol";
+import "../helpers/TransferHelper.sol";
 
 contract PresaleFactory is Ownable, AccessControl {
   event PresaleCreated(
@@ -32,6 +32,7 @@ contract PresaleFactory is Ownable, AccessControl {
   uint16 public salePercentageForEcosystem;
 
   bytes32 public excludedFromFeeRole = keccak256(abi.encodePacked("EXCLUDED_FROM_FEE_ROLE"));
+  bool public onlyOwnerCanCreate = true;
 
   constructor(
     address router,
@@ -64,6 +65,10 @@ contract PresaleFactory is Ownable, AccessControl {
     uint8[] calldata pct,
     uint24 withdrawDelay
   ) external payable returns (address presaleId) {
+    if (onlyOwnerCanCreate) {
+      require(_msgSender() == owner(), "only owner can create");
+    }
+
     uint256 fee = getDeploymentFeeETHER(_msgSender());
     uint256 endTime = startTime + (uint256(daysToLast) * 1 days);
     require(msg.value >= fee, "fee");

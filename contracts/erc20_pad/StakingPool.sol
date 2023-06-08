@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IStakingPool.sol";
-import "./helpers/TransferHelper.sol";
+import "../interfaces/IStakingPool.sol";
+import "../helpers/TransferHelper.sol";
 
 contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStakingPool {
   using SafeMath for uint256;

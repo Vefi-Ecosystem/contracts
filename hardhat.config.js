@@ -89,13 +89,15 @@ module.exports = {
       bsc: process.env.BSC_API_KEY,
       bitgert: process.env.BITGERT_API_KEY
     },
-    customChains: [{
-      network: "bitgert",
-      chainId: 32520,
-      urls: {
-        apiURL: "https://brisescan.com/api",
-        browserURL: "https://brisescan.com"
+    customChains: [
+      {
+        network: "bitgert",
+        chainId: 32520,
+        urls: {
+          apiURL: "https://brisescan.com/api",
+          browserURL: "https://brisescan.com"
+        }
       }
-    }]
+    ]
   }
 };

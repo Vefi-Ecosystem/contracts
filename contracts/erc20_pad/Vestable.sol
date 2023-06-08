@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./helpers/TransferHelper.sol";
+import "../helpers/TransferHelper.sol";
 
 // Inspiration: https://github.com/ImpossibleFinance/launchpad-contracts/blob/main/contracts/IFVestable.sol
 abstract contract Vestable is Ownable {
