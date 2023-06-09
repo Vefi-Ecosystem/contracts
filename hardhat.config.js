@@ -81,6 +81,11 @@ module.exports = {
       url: "https://exchainrpc.okex.org",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 66
+    },
+    base_goerli: {
+      url: "https://goerli.base.org",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 84531
     }
   },
   etherscan: {
