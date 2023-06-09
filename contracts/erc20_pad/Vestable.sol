@@ -1,9 +1,9 @@
 pragma solidity ^0.8.0;
 
-import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
-import "node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "node_modules/@openzeppelin/contracts/utils/math/Math.sol";
-import "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../helpers/TransferHelper.sol";
 
 // Inspiration: https://github.com/ImpossibleFinance/launchpad-contracts/blob/main/contracts/IFVestable.sol

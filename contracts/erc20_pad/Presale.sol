@@ -1,11 +1,11 @@
 pragma solidity ^0.8.0;
 
-import "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "node_modules/@openzeppelin/contracts/security/Pausable.sol";
-import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
-import "node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "node_modules/@openzeppelin/contracts/utils/Address.sol";
-import "node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./Purchasable.sol";
 import "./Fundable.sol";
 import "./Vestable.sol";
@@ -35,7 +35,7 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
   )
     Purchasable(_paymentToken, _salePrice, _maxTotalPayment)
     Vestable(_endTime)
-    Fundable(_paymentToken, _saleToken, _startTime, _endTime, _funder, _taxCollector, _taxPercentage, _taxSetter, _proceedsReceiver)
+    Fundable(_paymentToken, _saleToken, _startTime, _endTime, _funder, _taxCollector, _taxPercentage, _taxSetter)
     Whitelistable()
   {
     metadataURI = _metadataURI;
