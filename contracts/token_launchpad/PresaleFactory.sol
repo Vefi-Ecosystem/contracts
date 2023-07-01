@@ -24,9 +24,17 @@ contract PresaleFactory is Ownable, AccessControl {
   uint16 public salePercentageForEcosystem;
   address public feeCollector;
 
+  bytes32 public ADMIN_ROLE = keccak256(abi.encodePacked("ADMIN_ROLE"));
+
+  modifier onlyOwnerOrAdmin() {
+    require(hasRole(ADMIN_ROLE, _msgSender()) || _msgSender() == owner());
+    _;
+  }
+
   constructor(uint16 _salePercentageForEcosystem, address _feeCollector) {
     salePercentageForEcosystem = _salePercentageForEcosystem;
     feeCollector = _feeCollector;
+    _grantRole(ADMIN_ROLE, _msgSender());
   }
 
   function deploySale(
@@ -44,7 +52,7 @@ contract PresaleFactory is Ownable, AccessControl {
     uint256[] calldata claimTimes,
     uint8[] calldata pct,
     uint24 withdrawDelay
-  ) external onlyOwner returns (address presaleId) {
+  ) external onlyOwnerOrAdmin returns (address presaleId) {
     uint256 endTime = startTime + (uint256(daysToLast) * 1 days);
     bytes memory byteCode = abi.encodePacked(
       type(Presale).creationCode,
@@ -118,6 +126,16 @@ contract PresaleFactory is Ownable, AccessControl {
 
   function setFeeCollector(address _feeCollector) external onlyOwner {
     feeCollector = _feeCollector;
+  }
+
+  function grantAdminRole(address account) external onlyOwner {
+    require(!hasRole(ADMIN_ROLE, account), "already admin");
+    _grantRole(ADMIN_ROLE, account);
+  }
+
+  function revokeAdminRole(address account) external onlyOwner {
+    require(hasRole(ADMIN_ROLE, account), "account is not an admin");
+    _revokeRole(ADMIN_ROLE, account);
   }
 
   receive() external payable {}

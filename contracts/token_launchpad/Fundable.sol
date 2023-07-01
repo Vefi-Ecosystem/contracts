@@ -4,20 +4,16 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../helpers/TransferHelper.sol";
 import "./Taxable.sol";
 
-abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
+abstract contract Fundable is Ownable, Taxable, ReentrancyGuard {
   using SafeERC20 for ERC20;
   uint64 constant SALE_PRICE_DECIMALS = 10**18;
   uint64 private constant ONE_HOUR = 3600;
   uint64 private constant ONE_YEAR = 31556926;
   uint64 private constant FIVE_YEARS = 157784630;
   uint64 private constant TEN_YEARS = 315360000;
-
-  bytes32 public FUNDER_ROLE = keccak256(abi.encodePacked("FUNDER_ROLE"));
-  bytes32 public CASHER_ROLE = keccak256(abi.encodePacked("CASHER_ROLE"));
 
   uint256 public immutable startTime;
   uint256 public immutable endTime;
@@ -82,7 +78,7 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   }
 
   event SetCasher(address indexed casher);
-  event RemoveCasher(address indexed casher);
+  event SetFunder(address indexed funder);
   event Fund(address indexed sender, uint256 amount);
   event SetWithdrawDelay(uint24 indexed withdrawDelay);
   event Cash(address indexed sender, uint256 paymentTokenBalance, uint256 saleTokenBalance);
@@ -92,6 +88,11 @@ abstract contract Fundable is Ownable, AccessControl, Taxable, ReentrancyGuard {
   function setCasher(address _casher) public onlyOwner {
     casher = _casher;
     emit SetCasher(_casher);
+  }
+
+  function setFunder(address _funder) public onlyOwner {
+    funder = _funder;
+    emit SetFunder(_funder);
   }
 
   function setWithdrawDelay(uint24 _withdrawDelay) public virtual onlyOwner onlyBeforeSale {
