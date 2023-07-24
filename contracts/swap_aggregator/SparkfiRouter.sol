@@ -23,6 +23,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
 
   event UpdatedMinFee(uint256 newMinfee);
   event RouterSwap(address indexed tokenIn, address indexed tokenOut, address to, uint256 amountIn, uint256 amountOut);
+  event SetAdapters(address[] adapters);
 
   constructor(
     address[] memory _adapters,
@@ -32,6 +33,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     adapters = _adapters;
     FEE_CLAIMER = _feeClaimer;
     WETH = _weth;
+    _grantRole(maintainerRole, _msgSender());
   }
 
   modifier onlyMaintainer() {
@@ -58,16 +60,9 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     FEE_CLAIMER = _feeClaimer;
   }
 
-  function addAdapters(address[] memory _adapters) external onlyMaintainer {
-    address[] memory _adptrs = adapters;
-
-    for (uint256 i = _adptrs.length; i < (_adptrs.length + _adapters.length); i++) {
-      address adapter = _adapters[i - _adptrs.length];
-      require(adapter != address(0), "zero address");
-      _adptrs[i] = adapter;
-    }
-
-    adapters = _adptrs;
+  function setAdapters(address[] memory _adapters) external onlyMaintainer {
+    adapters = _adapters;
+    emit SetAdapters(_adapters);
   }
 
   receive() external payable {}
@@ -96,11 +91,12 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     address tokenOut,
     uint256 amountIn
   ) public view returns (Query memory _bestQuery) {
-    for (uint256 i = 0; i < adapters.length; i++) {
-      uint256 amountOut = ISparkfiAdapter(adapters[i]).query(tokenIn, tokenOut, amountIn);
+    address[] memory adpts = adapters;
+    for (uint256 i = 0; i < adpts.length; i++) {
+      uint256 amountOut = ISparkfiAdapter(adpts[i]).query(tokenIn, tokenOut, amountIn);
 
       if (i == 0 || amountOut > _bestQuery.amountOut) {
-        _bestQuery = Query(adapters[i], tokenIn, tokenOut, amountOut);
+        _bestQuery = Query(adpts[i], tokenIn, tokenOut, amountOut);
       }
     }
   }
@@ -111,6 +107,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     address to,
     uint256 fee
   ) internal returns (uint256) {
+    address[] memory adpts = trade.adapters;
     uint256[] memory amounts = new uint256[](trade.path.length);
     if (fee > 0 || MIN_FEE > 0) {
       amounts[0] = _applyFee(trade.amountIn, fee);
@@ -124,20 +121,19 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     }
 
     if (from != address(this)) {
-      TransferHelpers._safeTransferFromERC20(trade.path[0], from, adapters[0], amounts[0]);
+      TransferHelpers._safeTransferFromERC20(trade.path[0], from, adpts[0], amounts[0]);
     } else {
-      TransferHelpers._safeTransferERC20(trade.path[0], adapters[0], amounts[0]);
+      TransferHelpers._safeTransferERC20(trade.path[0], adpts[0], amounts[0]);
     }
 
-    for (uint256 i = 0; i < adapters.length; i++) {
-      Query memory _bestQuery = query(trade.path[i], trade.path[i + 1], amounts[i]);
-      amounts[i + 1] = _bestQuery.amountOut;
+    for (uint256 i = 0; i < adpts.length; i++) {
+      amounts[i + 1] = ISparkfiAdapter(adpts[i]).query(trade.path[i], trade.path[i + 1], amounts[i]);
     }
 
     require(amounts[amounts.length - 1] >= trade.amountOut, "insufficient output amount");
-    for (uint256 i = 0; i < adapters.length; i++) {
-      address targetAddress = i < adapters.length - 1 ? adapters[i + 1] : to;
-      address adapter = adapters[i];
+    for (uint256 i = 0; i < adpts.length; i++) {
+      address targetAddress = i < adpts.length - 1 ? adpts[i + 1] : to;
+      address adapter = adpts[i];
       adapter.functionCall(abi.encodeWithSelector(adapterSwapSelector, trade.path[i], trade.path[i + 1], targetAddress, amounts[i], amounts[i + 1]));
     }
 

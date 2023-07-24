@@ -11,6 +11,7 @@ struct Trade {
   uint256 amountIn;
   uint256 amountOut;
   address[] path;
+  address[] adapters;
 }
 
 interface ISparkfiRouter {
