@@ -107,7 +107,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     address to,
     uint256 fee
   ) internal returns (uint256) {
-    address[] memory adpts = adapters;
+    address[] memory adpts = trade.adapters;
     uint256[] memory amounts = new uint256[](trade.path.length);
     if (fee > 0 || MIN_FEE > 0) {
       amounts[0] = _applyFee(trade.amountIn, fee);
@@ -127,8 +127,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     }
 
     for (uint256 i = 0; i < adpts.length; i++) {
-      Query memory _bestQuery = query(trade.path[i], trade.path[i + 1], amounts[i]);
-      amounts[i + 1] = _bestQuery.amountOut;
+      amounts[i + 1] = ISparkfiAdapter(adpts[i]).query(trade.path[i], trade.path[i + 1], amounts[i]);
     }
 
     require(amounts[amounts.length - 1] >= trade.amountOut, "insufficient output amount");
