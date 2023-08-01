@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IStakingPool.sol";
 import "../helpers/TransferHelper.sol";
 
-contract StakingPool is Ownable, AccessControl, Pausable, ReentrancyGuard, IStakingPool {
+contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IStakingPool {
   using SafeMath for uint256;
   using Address for address;
 
