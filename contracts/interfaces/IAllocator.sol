@@ -1,10 +1,18 @@
 pragma solidity ^0.8.0;
 
-interface IStakingPool {
+interface IAllocator {
   event Stake(address account, uint256 amount, uint256 timestamp);
   event Unstake(address account, uint256 amount);
   event Withdrawal(address account, uint256 amount);
   event TaxPercentageChanged(uint8 newTaxPercentage);
+
+  function token() external view returns (address);
+  function apr() external view returns (uint24);
+  function unstakePercentage() external view returns (uint16);
+  function userStakeWeight(address) external view returns (uint112);
+  function amountStaked(address) external view returns (uint256);
+  function lastStakeTime(address) external view returns (uint256);
+  function lockTime(address)
 
   function blockedAddresses(address) external view returns (bool);
 
@@ -29,10 +37,6 @@ interface IStakingPool {
   function unstakeAll() external;
 
   function taxRecipient() external view returns (address);
-
-  function amountStaked(address) external view returns (uint256);
-
-  function lastStakeTime(address) external view returns (uint256);
 
   function nextWithdrawalTime(address) external view returns (uint256);
 }
