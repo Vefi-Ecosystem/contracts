@@ -7,193 +7,155 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/IStakingPool.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../interfaces/IAllocator.sol";
 import "../helpers/TransferHelper.sol";
 
-contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IStakingPool {
+contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAllocator {
   using SafeMath for uint256;
   using Address for address;
 
-  bytes32 public pauserRole = keccak256(abi.encodePacked("PAUSER_ROLE"));
+  struct StakeInfo {
+    uint256 timestamp;
+    uint256 amountStaked;
+  }
 
-  address public immutable tokenA;
-  address public immutable rewardToken;
-  address public immutable taxRecipient;
+  bytes32 public penaltyClause = keccak256(abi.encodePacked("penaltyForEarlyWithdrawal"));
 
-  uint16 public apy;
-  uint8 public stakingPoolTax;
-  uint256 public withdrawalIntervals;
-  uint256 private totalStaked;
-  uint256 public endsIn;
+  mapping(bytes32 => uint16) public earlyUnstakePenalties;
+  mapping(address => StakeInfo[]) public userStakes;
 
-  mapping(address => bool) public blockedAddresses;
-  mapping(address => uint256) public amountStaked;
-  mapping(address => uint256) public lastStakeTime;
-  mapping(address => uint256) public nextWithdrawalTime;
+  address public immutable token;
+
+  uint24 public apr;
+  uint256 public totalStaked;
 
   bool private isPoolWiped;
 
   constructor(
     address newOwner,
-    address token0,
-    address token1,
-    uint16 _apy,
-    uint8 poolTax,
-    address _taxRecipient,
-    uint256 intervals,
-    uint256 _endsIn
+    ERC20 _token,
+    uint16 _apr
   ) {
-    require(token0 == address(0) || token0.isContract(), "token 0 must be zero address or contract");
-    require(token1 == address(0) || token1.isContract(), "token 1 must be zero address or contract");
-    tokenA = token0;
-    rewardToken = token1;
-    apy = _apy;
-    stakingPoolTax = poolTax;
-    withdrawalIntervals = intervals;
+    require(newOwner != address(0), "cannot be zero address");
+    require(address(_token).isContract(), "must be contract");
 
-    if (poolTax > 0) {
-      require(_taxRecipient != address(0), "tax recipient cannot be zero address if fee is greater than 0");
-    }
-
-    taxRecipient = _taxRecipient;
-    endsIn = _endsIn;
-    _grantRole(pauserRole, _msgSender());
-    _grantRole(pauserRole, newOwner);
+    token = address(_token);
+    apr = _apr;
+    _initEarlyUnstakePenalties();
     _transferOwnership(newOwner);
   }
 
-  function _stake(uint256 amount) private whenNotPaused {
-    require(block.timestamp < endsIn, "staking has ended");
-    require(!blockedAddresses[_msgSender()], "account has been blocked");
-    require(amount > 0, "amount must be greater than 0");
-    require(!isPoolWiped, "pool is wiped");
+  function _encodeRange(uint256 _day) private view returns (bytes32 enc) {
+    bytes32 dayEnc = keccak256(abi.encodePacked(_day, penaltyClause));
+    enc = keccak256(abi.encodePacked(dayEnc, penaltyClause));
+  }
 
-    if (tokenA != address(0)) {
-      require(IERC20(tokenA).allowance(_msgSender(), address(this)) >= amount, "not enough allowance is given");
-      TransferHelpers._safeTransferFromERC20(tokenA, _msgSender(), address(this), amount);
+  function _initEarlyUnstakePenalties() private {
+    addEarlyUnstakingPenaltiesForRange(0, 10, 10);
+    addEarlyUnstakingPenaltiesForRange(11, 9, 5);
+    addEarlyUnstakingPenaltiesForRange(21, 9, 3);
+  }
+
+  function getUnstakeableByAccount(address _account) public view returns (uint256) {
+    uint256 _r = accountReward(_account);
+    uint256 _totalAndReward = totalStakedByAccount(_account).mul(_r);
+    StakeInfo[] memory stakeInfos = userStakes[_account];
+
+    uint256 t = block.timestamp;
+    uint256 _penaltyFee;
+
+    for (uint256 i = 0; i < stakeInfos.length; i++) {
+      uint256 elapsed = t.sub(stakeInfos[i].timestamp);
+      uint256 elapsedInDays = elapsed.div(86400) * 1 days;
+      bytes32 enc = _encodeRange(elapsedInDays);
+      _penaltyFee += (earlyUnstakePenalties[enc] * stakeInfos[i].amountStaked) / 100;
     }
+    return _totalAndReward.sub(_penaltyFee);
+  }
 
-    uint256 tax = amount.mul(stakingPoolTax) / 100;
+  function accountReward(address _account) public view returns (uint256) {
+    StakeInfo[] memory stakeInfos = userStakes[_account];
+    uint256 accumulatedReward;
+    uint256 timestamp = block.timestamp;
 
-    if (tax > 0) {
-      if (tokenA == address(0)) TransferHelpers._safeTransferEther(taxRecipient, tax);
-      else TransferHelpers._safeTransferERC20(tokenA, taxRecipient, tax);
+    for (uint256 i = 0; i < stakeInfos.length; i++) {
+      uint256 t = timestamp.sub(stakeInfos[i].timestamp);
+      uint256 x = 1 + (((apr * t) / 100) / 31536000);
+      accumulatedReward += x;
     }
-
-    amountStaked[_msgSender()] = amountStaked[_msgSender()].add(amount.sub(tax));
-
-    if (lastStakeTime[_msgSender()] == 0) {
-      lastStakeTime[_msgSender()] = block.timestamp;
-    }
-
-    if (nextWithdrawalTime[_msgSender()] == 0) {
-      nextWithdrawalTime[_msgSender()] = block.timestamp.add(withdrawalIntervals);
-    }
-
-    totalStaked = totalStaked.add(amount);
+    return accumulatedReward;
   }
 
-  function calculateReward(address account) public view returns (uint256 reward) {
-    uint256 percentage = uint256(apy).mul(block.timestamp.sub(lastStakeTime[account]) / (withdrawalIntervals)).div(12);
-    reward = amountStaked[account].mul(percentage) / 100;
+  function totalStakedByAccount(address _account) public view returns (uint256 accountStake) {
+    StakeInfo[] memory stakeInfos = userStakes[_account];
+
+    for (uint256 i = 0; i < stakeInfos.length; i++) accountStake += stakeInfos[i].amountStaked;
   }
 
-  function stakeERC20(uint256 amount) external whenNotPaused nonReentrant {
-    _stake(amount);
-    emit Stake(_msgSender(), amount, block.timestamp);
-  }
-
-  function stakeEther() external payable whenNotPaused nonReentrant {
-    _stake(msg.value);
-    emit Stake(_msgSender(), msg.value, block.timestamp);
-  }
-
-  function unstakeAmount(uint256 amount) public nonReentrant {
-    require(amount <= amountStaked[_msgSender()], "unstaked amount must be less than or equal to amount staked");
-
-    if (tokenA == address(0)) {
-      TransferHelpers._safeTransferEther(_msgSender(), amount);
-    } else {
-      TransferHelpers._safeTransferERC20(tokenA, _msgSender(), amount);
-    }
-    amountStaked[_msgSender()] = amountStaked[_msgSender()].sub(amount);
-
-    if (amount == amountStaked[_msgSender()]) {
-      delete lastStakeTime[_msgSender()];
-      delete nextWithdrawalTime[_msgSender()];
-    }
-    totalStaked = totalStaked.sub(amount);
-    emit Unstake(_msgSender(), amount);
-  }
-
-  function unstakeAll() external {
-    unstakeAmount(amountStaked[_msgSender()]);
-  }
-
-  function withdrawRewards() external whenNotPaused nonReentrant {
-    require(block.timestamp < endsIn, "rewards are no longer distributed");
-    require(!blockedAddresses[_msgSender()], "account has been blocked");
-    require(block.timestamp >= nextWithdrawalTime[_msgSender()], "not time for withdrawal");
-    uint256 reward = calculateReward(_msgSender());
-
-    if (rewardToken == address(0)) TransferHelpers._safeTransferEther(_msgSender(), reward);
-    else TransferHelpers._safeTransferERC20(rewardToken, _msgSender(), reward);
-
-    lastStakeTime[_msgSender()] = block.timestamp;
-    nextWithdrawalTime[_msgSender()] = block.timestamp.add(withdrawalIntervals);
-    emit Withdrawal(_msgSender(), reward);
-  }
-
-  function retrieveEther(address to) public onlyOwner {
-    if (tokenA == address(0)) {
-      uint256 amount = address(this).balance.sub(totalStaked);
-      TransferHelpers._safeTransferEther(to, amount);
-    } else TransferHelpers._safeTransferEther(to, address(this).balance);
-  }
-
-  function setStakingPoolTax(uint8 poolTax) external onlyOwner {
-    stakingPoolTax = poolTax;
-    emit TaxPercentageChanged(poolTax);
-  }
-
-  function retrieveERC20(
-    address token,
-    address to,
-    uint256 amount
+  function addEarlyUnstakingPenaltiesForRange(
+    uint16 _start,
+    uint16 _gap,
+    uint16 _percentage
   ) public onlyOwner {
-    require(token.isContract(), "must_be_contract_address");
+    uint256 rangeMax = uint256(_start).add(uint256(_gap));
 
-    if (tokenA == token) {
-      uint256 bal = IERC20(token).balanceOf(address(this));
-      uint256 a = bal.sub(totalStaked);
-      if (a > 0) TransferHelpers._safeTransferERC20(token, to, a);
-    } else TransferHelpers._safeTransferERC20(token, to, amount);
-  }
-
-  function wipePoolOfRewardTokens(address to) external {
-    require(block.timestamp >= endsIn, "staking is still on");
-    require(!isPoolWiped, "pool already wiped");
-    if (rewardToken == address(0)) retrieveEther(to);
-    else {
-      uint256 bal = IERC20(rewardToken).balanceOf(address(this));
-      retrieveERC20(rewardToken, to, bal);
+    for (uint256 i = uint256(_start); i <= rangeMax; i++) {
+      uint256 day = i.mul(1 days);
+      bytes32 encodedR = _encodeRange(day);
+      earlyUnstakePenalties[encodedR] = _percentage;
     }
-
-    isPoolWiped = true;
   }
 
-  function pause() external {
-    require(hasRole(pauserRole, _msgSender()));
+  function stake(uint256 amount) external whenNotPaused {
+    StakeInfo[] memory stakeInfos = userStakes[_msgSender()];
+    require(IERC20(token).allowance(_msgSender(), address(this)) >= amount, "not enough allowance");
+    TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), amount);
+
+    StakeInfo memory stakeInfo = StakeInfo({timestamp: block.timestamp, amountStaked: amount});
+    totalStaked = totalStaked.add(amount);
+    stakeInfos[stakeInfos.length - 1] = stakeInfo;
+    userStakes[_msgSender()] = stakeInfos;
+
+    emit Stake(_msgSender(), amount, stakeInfo.timestamp);
+  }
+
+  function unstake() external {
+    uint256 tsa = totalStakedByAccount(_msgSender());
+    uint256 unstakeable = getUnstakeableByAccount(_msgSender());
+    TransferHelpers._safeTransferERC20(token, _msgSender(), unstakeable);
+    delete userStakes[_msgSender()];
+
+    totalStaked = totalStaked.sub(tsa);
+    emit Unstake(_msgSender(), tsa);
+  }
+
+  function retrieveEther(address to) external onlyOwner {
+    uint256 amount = address(this).balance;
+    TransferHelpers._safeTransferEther(to, amount);
+  }
+
+  function retrieveExcessStakeToken(address to) external onlyOwner {
+    uint256 amount = IERC20(token).balanceOf(address(this)).sub(totalStaked);
+    TransferHelpers._safeTransferERC20(token, to, amount);
+  }
+
+  function retrieveERC20(address _token, address to) external onlyOwner {
+    require(_token != token, "use retrieveExcessStakeToken");
+    uint256 amount = IERC20(_token).balanceOf(address(this));
+    TransferHelpers._safeTransferERC20(_token, to, amount);
+  }
+
+  function pause() external onlyOwner {
     _pause();
   }
 
-  function unpause() external {
-    require(hasRole(pauserRole, _msgSender()));
+  function unpause() external onlyOwner {
     _unpause();
   }
 
-  function switchBlockAddress(address account) external onlyOwner {
-    blockedAddresses[account] = !blockedAddresses[account];
+  function setAPR(uint24 _apr) external onlyOwner {
+    apr = _apr;
   }
 
   receive() external payable {}
