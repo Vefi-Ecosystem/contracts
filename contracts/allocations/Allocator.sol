@@ -38,8 +38,6 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   uint24 public apr;
   uint256 public totalStaked;
 
-  bool private isPoolWiped;
-
   address public lottery;
 
   constructor(
