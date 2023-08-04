@@ -39,7 +39,7 @@ contract AllocationSale is Presale {
 
   function getPaymentAllocationForAccount(address account) public view returns (uint256) {
     uint256 totalWeight = allocator.totalStaked();
-    uint256 userWeight = allocator.totalStakedByAccount(account);
+    uint256 userWeight = allocator.userWeight(account);
     require(totalWeight > 0, "total weight is 0");
     uint256 saleTokenAllocation = (((saleAmount * salePrice) / SALE_PRICE_DECIMALS) * 4) / totalWeight;
     return saleTokenAllocation * (userWeight / 10**18);
@@ -77,7 +77,7 @@ contract AllocationSale is Presale {
   }
 
   function getUserStakeValue(address user) public view returns (uint256) {
-    uint256 userWeight = allocator.totalStakedByAccount(user);
+    uint256 userWeight = allocator.userWeight(user);
     uint256 totalWeight = allocator.totalStaked();
     require(totalWeight > 0, "total weight is 0");
 

@@ -18,7 +18,7 @@ abstract contract Fundable is Ownable, Taxable, ReentrancyGuard {
   uint256 public immutable startTime;
   uint256 public immutable endTime;
   ERC20 private immutable paymentToken;
-  ERC20 private immutable saleToken;
+  ERC20 internal immutable saleToken;
   uint24 public withdrawDelay;
   mapping(address => bool) public hasWithdrawn;
 
