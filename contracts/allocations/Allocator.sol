@@ -225,7 +225,9 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
 
     lottery = ltry;
 
-    uint256 communityPoolAllocation = (percentage * totalStaked) / 100;
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    uint256 x = balance > totalStaked ? balance : totalStaked;
+    uint256 communityPoolAllocation = (percentage * x) / 100;
 
     TransferHelpers._safeTransferERC20(token, ltry, communityPoolAllocation);
   }
@@ -237,6 +239,24 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   ) external onlyOwner {
     require(lottery != address(0), "no lottery");
     Lottery(lottery).mintTickets(nums, accounts, _tokenURI);
+  }
+
+  function endLottery() external onlyOwner {
+    require(lottery != address(0), "no lottery");
+    Lottery l = Lottery(lottery);
+    l.selectWinners();
+    address[] memory winners = l.getWinners();
+    uint256 bal = IERC20(token).balanceOf(lottery);
+    l.retrieveTokens(address(this), bal);
+
+    if (winners.length > 0) {
+      uint256 factor = bal / winners.length;
+      for (uint256 i = 0; i < winners.length; i++) {
+        _stake(winners[i], factor);
+      }
+    }
+
+    lottery = address(0);
   }
 
   receive() external payable {}
