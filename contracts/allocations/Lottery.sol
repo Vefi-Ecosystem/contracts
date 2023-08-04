@@ -55,8 +55,9 @@ contract Lottery is Ownable, AccessControl, ERC721URIStorage {
         uint256 tokenId = tokenIds.current();
         _mint(accounts[i], tokenId);
         _setTokenURI(tokenId, _tokenURI);
-        participants.push(accounts[i]);
       }
+
+      participants.push(accounts[i]);
     }
   }
 
