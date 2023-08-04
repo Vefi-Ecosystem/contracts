@@ -4,9 +4,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Presale.sol";
+import "./AllocationSale.sol";
 import "../helpers/TransferHelper.sol";
+import "../interfaces/IAllocator.sol";
 
 contract PresaleFactory is Ownable, AccessControl {
+  enum PresaleType {
+    REGULAR,
+    ALLOCATION
+  }
+
   event PresaleCreated(
     address indexed presaleId,
     string metadataURI,
@@ -18,11 +25,13 @@ contract PresaleFactory is Ownable, AccessControl {
     uint256 endTime,
     uint256 minTotalPayment,
     uint256 maxTotalPayment,
-    uint24 withdrawDelay
+    uint24 withdrawDelay,
+    PresaleType presaleType
   );
 
   uint16 public salePercentageForEcosystem;
   address public feeCollector;
+  IAllocator public allocator;
 
   bytes32 public ADMIN_ROLE = keccak256(abi.encodePacked("ADMIN_ROLE"));
 
@@ -31,9 +40,14 @@ contract PresaleFactory is Ownable, AccessControl {
     _;
   }
 
-  constructor(uint16 _salePercentageForEcosystem, address _feeCollector) {
+  constructor(
+    uint16 _salePercentageForEcosystem,
+    address _feeCollector,
+    IAllocator _allocator
+  ) {
     salePercentageForEcosystem = _salePercentageForEcosystem;
     feeCollector = _feeCollector;
+    allocator = _allocator;
     _grantRole(ADMIN_ROLE, _msgSender());
   }
 
@@ -51,12 +65,13 @@ contract PresaleFactory is Ownable, AccessControl {
     uint256 maxTotalPayment,
     uint256[] calldata claimTimes,
     uint8[] calldata pct,
-    uint24 withdrawDelay
+    uint24 withdrawDelay,
+    PresaleType presaleType
   ) external onlyOwnerOrAdmin returns (address presaleId) {
     uint256 endTime = startTime + (uint256(daysToLast) * 1 days);
-    bytes memory byteCode = abi.encodePacked(
-      type(Presale).creationCode,
-      abi.encode(
+    bytes memory creationCode = presaleType == PresaleType.REGULAR ? type(Presale).creationCode : type(AllocationSale).creationCode;
+    bytes memory constructorArgs = presaleType == PresaleType.REGULAR
+      ? abi.encode(
         metadataURI,
         funder,
         salePrice,
@@ -69,7 +84,22 @@ contract PresaleFactory is Ownable, AccessControl {
         salePercentageForEcosystem,
         owner()
       )
-    );
+      : abi.encode(
+        metadataURI,
+        funder,
+        salePrice,
+        paymentToken,
+        saleToken,
+        startTime,
+        endTime,
+        maxTotalPayment,
+        feeCollector,
+        salePercentageForEcosystem,
+        owner(),
+        address(allocator)
+      );
+
+    bytes memory byteCode = abi.encodePacked(creationCode, constructorArgs);
     bytes32 salt = keccak256(abi.encodePacked(_msgSender(), funder, block.timestamp));
 
     assembly ("memory-safe") {
@@ -90,7 +120,8 @@ contract PresaleFactory is Ownable, AccessControl {
       endTime,
       minTotalPayment,
       maxTotalPayment,
-      withdrawDelay
+      withdrawDelay,
+      presaleType
     );
 
     Presale pSale = Presale(presaleId);

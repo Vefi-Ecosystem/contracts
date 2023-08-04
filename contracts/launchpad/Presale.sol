@@ -12,6 +12,7 @@ import "./Vestable.sol";
 import "./Whitelistable.sol";
 
 contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
+  using SafeMath for uint256;
   mapping(address => uint256) public claimable;
   mapping(address => uint256) public totalPurchased;
 
@@ -105,8 +106,13 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
   }
 
   function _purchase(uint256 paymentAmount, uint256 remaining) internal override {
-    totalPaymentReceived += paymentAmount;
-    super._purchase(paymentAmount, remaining);
+    uint256 saleTokensSold = getSaleTokensSold();
+    uint256 space = saleAmount > saleTokensSold ? saleAmount.sub(saleTokensSold) : saleTokensSold.sub(saleAmount);
+    require(space > 0, "all tokens sold");
+    uint256 saleTokenAmount = (paymentAmount * SALE_PRICE_DECIMALS) / salePrice;
+    uint256 pAmount = space >= saleTokenAmount ? paymentAmount : (space * salePrice) / SALE_PRICE_DECIMALS;
+    totalPaymentReceived += pAmount;
+    super._purchase(pAmount, remaining);
 
     uint256 tokenPurchased = (paymentReceived[_msgSender()] * SALE_PRICE_DECIMALS) / salePrice;
     totalPurchased[_msgSender()] = tokenPurchased;
