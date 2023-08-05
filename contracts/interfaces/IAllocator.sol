@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 interface IAllocator {
-  event Stake(address account, uint256 amount, uint256 timestamp);
+  event Stake(address account, uint256 amount, uint256 timestamp, uint256 lockDuration);
   event Unstake(address account, uint256 amount);
   event TaxPercentageChanged(uint8 newTaxPercentage);
   event TierAdded(string name, uint256 num);
@@ -14,7 +14,7 @@ interface IAllocator {
 
   function totalStaked() external view returns (uint256);
 
-  function stake(uint256) external;
+  function stake(uint256, uint24) external;
 
   function unstake() external;
 }

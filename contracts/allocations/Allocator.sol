@@ -19,6 +19,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   struct StakeInfo {
     uint256 timestamp;
     uint256 amountStaked;
+    uint256 lockDuration;
   }
 
   struct Tier {
@@ -31,12 +32,15 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   mapping(bytes32 => uint16) public earlyUnstakePenalties;
   mapping(address => StakeInfo[]) public userStakes;
   mapping(address => Tier) public userTier;
+  mapping(address => bool) public hasLessThanGuaranteedAllocationStart;
+  mapping(address => mapping(address => bool)) public hasBeenSetForLottery;
 
   address public immutable token;
   Tier[] public tiers;
 
   uint24 public apr;
   uint256 public totalStaked;
+  uint256 public guaranteedAllocationStart = 4e5 * 10**18;
 
   address public lottery;
 
@@ -90,6 +94,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     for (uint256 i = 0; i < stakeInfos.length; i++) {
       uint256 elapsed = t.sub(stakeInfos[i].timestamp);
       uint256 elapsedInDays = elapsed.div(86400) * 1 days;
+
       bytes32 enc = _encodeRange(elapsedInDays);
       _penaltyFee += (earlyUnstakePenalties[enc] * stakeInfos[i].amountStaked) / 100;
     }
@@ -129,12 +134,16 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     }
   }
 
-  function _stake(address account, uint256 amount) private {
+  function _stake(
+    address account,
+    uint256 amount,
+    uint24 lockDurationInDays
+  ) private {
     StakeInfo[] memory stakeInfos = userStakes[account];
 
     TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), amount);
 
-    StakeInfo memory stakeInfo = StakeInfo({timestamp: block.timestamp, amountStaked: amount});
+    StakeInfo memory stakeInfo = StakeInfo({timestamp: block.timestamp, amountStaked: amount, lockDuration: lockDurationInDays * 1 days});
     totalStaked = totalStaked.add(amount);
 
     if (stakeInfos.length > 0) {
@@ -153,17 +162,43 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
       }
     }
 
-    emit Stake(_msgSender(), amount, stakeInfo.timestamp);
+    if (totalStakes < guaranteedAllocationStart) {
+      hasLessThanGuaranteedAllocationStart[account] = true;
+    } else {
+      hasLessThanGuaranteedAllocationStart[account] = false;
+    }
+
+    if (hasLessThanGuaranteedAllocationStart[account]) {
+      if (totalStakes >= 1e5 * 10**18) {
+        if (lottery != address(0)) {
+          if (!hasBeenSetForLottery[lottery][account]) {
+            uint256 num = totalStakes >= 1e5 * 10**18 && totalStakes <= 199999 * 10**18 ? 1 : 100;
+
+            address[] memory accounts;
+            accounts[0] = account;
+
+            uint256[] memory nums;
+            nums[0] = num;
+
+            Lottery(lottery).mintTickets(nums, accounts, "");
+            hasBeenSetForLottery[lottery][account] = true;
+          }
+        }
+      }
+    }
+
+    emit Stake(_msgSender(), amount, stakeInfo.timestamp, stakeInfo.lockDuration);
   }
 
-  function stake(uint256 amount) external whenNotPaused {
+  function stake(uint256 amount, uint24 lockDurationInDays) external whenNotPaused {
     require(IERC20(token).allowance(_msgSender(), address(this)) >= amount, "not enough allowance");
-    _stake(_msgSender(), amount);
+    _stake(_msgSender(), amount, lockDurationInDays);
   }
 
   function unstake() external {
     uint256 tsa = userWeight(_msgSender());
     uint256 unstakeable = getUnstakeableByAccount(_msgSender());
+    require(unstakeable > 0, "you can't unstake at this moment");
     TransferHelpers._safeTransferERC20(token, _msgSender(), unstakeable);
     delete userStakes[_msgSender()];
 
@@ -250,7 +285,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     if (winners.length > 0) {
       uint256 factor = bal / winners.length;
       for (uint256 i = 0; i < winners.length; i++) {
-        _stake(winners[i], factor);
+        _stake(winners[i], factor, 30);
       }
     }
 
