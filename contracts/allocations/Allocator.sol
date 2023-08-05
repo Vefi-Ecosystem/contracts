@@ -95,6 +95,10 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
       uint256 elapsed = t.sub(stakeInfos[i].timestamp);
       uint256 elapsedInDays = elapsed.div(86400) * 1 days;
 
+      if (i == 0 && stakeInfos[i].lockDuration > elapsedInDays) {
+        return 0;
+      }
+
       bytes32 enc = _encodeRange(elapsedInDays);
       _penaltyFee += (earlyUnstakePenalties[enc] * stakeInfos[i].amountStaked) / 100;
     }
@@ -252,7 +256,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
       ltry := create2(0, add(bytecode, 32), mload(bytecode), salt)
 
       if iszero(extcodesize(ltry)) {
-        revert(0, "could not deploy sale contract")
+        revert(0, "could not deploy lottery")
       }
     }
 
