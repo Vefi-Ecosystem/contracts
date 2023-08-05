@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Presale.sol";
-import "./AllocationSale.sol";
 import "../helpers/TransferHelper.sol";
 import "../interfaces/IAllocator.sol";
 
@@ -52,6 +51,7 @@ contract PresaleFactory is Ownable, AccessControl {
   }
 
   function deploySale(
+    bytes memory creationCode,
     string memory metadataURI,
     address newOwner,
     address casher,
@@ -69,7 +69,6 @@ contract PresaleFactory is Ownable, AccessControl {
     PresaleType presaleType
   ) external onlyOwnerOrAdmin returns (address presaleId) {
     uint256 endTime = startTime + (uint256(daysToLast) * 1 days);
-    bytes memory creationCode = presaleType == PresaleType.REGULAR ? type(Presale).creationCode : type(AllocationSale).creationCode;
     bytes memory constructorArgs = presaleType == PresaleType.REGULAR
       ? abi.encode(
         metadataURI,

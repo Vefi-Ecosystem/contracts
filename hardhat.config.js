@@ -12,12 +12,12 @@ require("dotenv").config();
  */
 module.exports = {
   solidity: {
-    version: "0.8.21",
+    version: "0.8.17",
     settings: {
       viaIR: true,
       optimizer: {
         enabled: true,
-        runs: 100
+        runs: 999999
       }
     }
   },
