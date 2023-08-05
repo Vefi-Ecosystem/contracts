@@ -38,7 +38,7 @@ contract Lottery is Ownable, AccessControl, ERC721URIStorage {
   }
 
   function random(uint256 num) private view returns (uint256) {
-    return uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, num)));
+    return uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp, num)));
   }
 
   function mintTickets(

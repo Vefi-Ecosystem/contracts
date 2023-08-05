@@ -106,7 +106,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   }
 
   function accountReward(address _account) public view returns (uint256) {
-    StakeInfo[] memory stakeInfos = userStakes[_account];
+    StakeInfo[] storage stakeInfos = userStakes[_account];
     uint256 accumulatedReward;
     uint256 timestamp = block.timestamp;
 
@@ -119,7 +119,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   }
 
   function userWeight(address _account) public view returns (uint256 accountStake) {
-    StakeInfo[] memory stakeInfos = userStakes[_account];
+    StakeInfo[] storage stakeInfos = userStakes[_account];
 
     for (uint256 i = 0; i < stakeInfos.length; i++) accountStake += stakeInfos[i].amountStaked;
   }
@@ -143,7 +143,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     uint256 amount,
     uint24 lockDurationInDays
   ) private {
-    StakeInfo[] memory stakeInfos = userStakes[account];
+    StakeInfo[] storage stakeInfos = userStakes[account];
 
     TransferHelpers._safeTransferFromERC20(token, _msgSender(), address(this), amount);
 
@@ -238,18 +238,17 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     apr = _apr;
   }
 
-  function createLottery(uint16 percentage) external onlyOwner {
+  function createLottery(bytes memory creationCode, uint16 percentage) external onlyOwner {
     require(lottery == address(0), "lottery already initialized");
-    bytes memory creationCode = type(Lottery).creationCode;
     bytes memory constructorArgs = abi.encode(
       "Sparkfi Lottery Pool",
-      string.concat("SLP-", string(abi.encode(uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, address(this)))) % 1e4))),
+      string.concat("SLP-", string(abi.encode(uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp, address(this)))) % 1e4))),
       token,
       owner(),
       address(this)
     );
     bytes memory bytecode = abi.encodePacked(creationCode, constructorArgs);
-    bytes32 salt = keccak256(abi.encodePacked(address(this), block.prevrandao, block.timestamp));
+    bytes32 salt = keccak256(abi.encodePacked(address(this), block.difficulty, block.timestamp));
     address ltry;
 
     assembly {
