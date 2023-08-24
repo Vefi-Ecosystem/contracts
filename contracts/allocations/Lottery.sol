@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "../helpers/TransferHelper.sol";
 
 contract Lottery is Ownable, AccessControl, ERC721URIStorage {
   using Counters for Counters.Counter;
@@ -14,19 +13,15 @@ contract Lottery is Ownable, AccessControl, ERC721URIStorage {
   address[] public winners;
 
   Counters.Counter tokenIds;
-
-  ERC20 token;
   bytes32 public whitelistRootHash;
   bytes32 public managerRole = keccak256(abi.encodePacked("MANAGER_ROLE"));
 
   constructor(
     string memory _name,
     string memory _symbol,
-    ERC20 _token,
     address _manager,
     address newOwner
   ) ERC721(_name, _symbol) {
-    token = _token;
     _grantRole(managerRole, _msgSender());
     _grantRole(managerRole, _manager);
     _transferOwnership(newOwner);
@@ -85,15 +80,11 @@ contract Lottery is Ownable, AccessControl, ERC721URIStorage {
     }
   }
 
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl, ERC721) returns (bool) {
     return interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId || super.supportsInterface(interfaceId);
   }
 
   function getWinners() external view returns (address[] memory) {
     return winners;
-  }
-
-  function retrieveTokens(address to, uint256 amount) external onlyManagerOrOwner {
-    TransferHelpers._safeTransferERC20(address(token), to, amount);
   }
 }

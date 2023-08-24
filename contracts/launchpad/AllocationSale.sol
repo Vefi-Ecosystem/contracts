@@ -41,6 +41,11 @@ contract AllocationSale is Presale {
     uint256 totalWeight = allocator.totalStaked();
     uint256 userWeight = allocator.userWeight(account);
     require(totalWeight > 0, "total weight is 0");
+
+    if (userWeight < allocator.guaranteedAllocationStart()) {
+      return 0;
+    }
+
     uint256 saleTokenAllocation = (((saleAmount * salePrice) / SALE_PRICE_DECIMALS) * 4) / totalWeight;
     return saleTokenAllocation * (userWeight / 10**18);
   }
