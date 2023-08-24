@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -12,7 +11,7 @@ import "../interfaces/IAllocator.sol";
 import "../helpers/TransferHelper.sol";
 import "./Lottery.sol";
 
-contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAllocator {
+contract Allocator is Ownable, AccessControl, Pausable, IAllocator {
   using SafeMath for uint256;
   using Address for address;
 
@@ -32,8 +31,6 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   mapping(bytes32 => uint16) public earlyUnstakePenalties;
   mapping(address => StakeInfo[]) public userStakes;
   mapping(address => Tier) public userTier;
-  mapping(address => bool) public hasLessThanGuaranteedAllocationStart;
-  mapping(address => mapping(address => bool)) public hasBeenSetForLottery;
 
   address public immutable token;
   Tier[] public tiers;
@@ -41,21 +38,24 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
   uint24 public apr;
   uint256 public totalStaked;
   uint256 public guaranteedAllocationStart = 4e5 * 10**18;
+  uint256 public ONE_LOTTERY_TICKET = 1e5 * 10**18;
+  uint256 public HUNDRED_LOTTERY_TICKETS = 2e5 * 10**18;
 
   address public lottery;
 
   constructor(
     address newOwner,
     ERC20 _token,
-    uint16 _apr
+    uint24 _apr
   ) {
     require(newOwner != address(0), "cannot be zero address");
     require(address(_token).isContract(), "must be contract");
 
     token = address(_token);
-    apr = _apr;
+    setAPR(_apr);
     _initEarlyUnstakePenalties();
     _initTiers();
+
     _transferOwnership(newOwner);
   }
 
@@ -112,7 +112,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
 
     for (uint256 i = 0; i < stakeInfos.length; i++) {
       uint256 t = timestamp.sub(stakeInfos[i].timestamp);
-      uint256 x = 1 + (((apr * t) / 100) / 31536000);
+      uint256 x = 1 + ((((apr / 10**3) * t) / 100) / 31536000);
       accumulatedReward += x;
     }
     return accumulatedReward;
@@ -150,13 +150,7 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     StakeInfo memory stakeInfo = StakeInfo({timestamp: block.timestamp, amountStaked: amount, lockDuration: lockDurationInDays * 1 days});
     totalStaked = totalStaked.add(amount);
 
-    if (stakeInfos.length > 0) {
-      stakeInfos[stakeInfos.length - 1] = stakeInfo;
-    } else {
-      stakeInfos[0] = stakeInfo;
-    }
-
-    userStakes[_msgSender()] = stakeInfos;
+    stakeInfos.push(stakeInfo);
 
     uint256 totalStakes = userWeight(account);
 
@@ -166,29 +160,15 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
       }
     }
 
-    if (totalStakes < guaranteedAllocationStart) {
-      hasLessThanGuaranteedAllocationStart[account] = true;
-    } else {
-      hasLessThanGuaranteedAllocationStart[account] = false;
-    }
+    if (lottery != address(0)) {
+      uint256 num = totalStakes >= ONE_LOTTERY_TICKET && totalStakes <= HUNDRED_LOTTERY_TICKETS.sub(1) ? 1 : 100;
+      address[] memory accounts;
+      accounts[0] = account;
 
-    if (hasLessThanGuaranteedAllocationStart[account]) {
-      if (totalStakes >= 1e5 * 10**18) {
-        if (lottery != address(0)) {
-          if (!hasBeenSetForLottery[lottery][account]) {
-            uint256 num = totalStakes >= 1e5 * 10**18 && totalStakes <= 199999 * 10**18 ? 1 : 100;
+      uint256[] memory nums;
+      nums[0] = num;
 
-            address[] memory accounts;
-            accounts[0] = account;
-
-            uint256[] memory nums;
-            nums[0] = num;
-
-            Lottery(lottery).mintTickets(nums, accounts, "");
-            hasBeenSetForLottery[lottery][account] = true;
-          }
-        }
-      }
+      Lottery(lottery).mintTickets(nums, accounts, "");
     }
 
     emit Stake(_msgSender(), amount, stakeInfo.timestamp, stakeInfo.lockDuration);
@@ -234,16 +214,16 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     _unpause();
   }
 
-  function setAPR(uint24 _apr) external onlyOwner {
+  function setAPR(uint24 _apr) public onlyOwner {
     apr = _apr;
+    emit APRChanged(_apr);
   }
 
-  function createLottery(bytes memory creationCode, uint16 percentage) external onlyOwner {
+  function createLottery(bytes memory creationCode) external onlyOwner {
     require(lottery == address(0), "lottery already initialized");
     bytes memory constructorArgs = abi.encode(
       "Sparkfi Lottery Pool",
       string.concat("SLP-", string(abi.encode(uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp, address(this)))) % 1e4))),
-      token,
       owner(),
       address(this)
     );
@@ -260,12 +240,6 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     }
 
     lottery = ltry;
-
-    uint256 balance = IERC20(token).balanceOf(address(this));
-    uint256 x = balance > totalStaked ? balance : totalStaked;
-    uint256 communityPoolAllocation = (percentage * x) / 100;
-
-    TransferHelpers._safeTransferERC20(token, ltry, communityPoolAllocation);
   }
 
   function addLotteryParticipants(
@@ -277,16 +251,20 @@ contract Allocator is Ownable, AccessControl, Pausable, ReentrancyGuard, IAlloca
     Lottery(lottery).mintTickets(nums, accounts, _tokenURI);
   }
 
-  function endLottery() external onlyOwner {
+  function endLottery(uint16 percentage) external onlyOwner {
     require(lottery != address(0), "no lottery");
     Lottery l = Lottery(lottery);
+
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    uint256 x = balance > totalStaked ? balance : totalStaked;
+    uint256 communityPoolAllocation = (percentage * x) / 100;
+
     l.selectWinners();
+
     address[] memory winners = l.getWinners();
-    uint256 bal = IERC20(token).balanceOf(lottery);
-    l.retrieveTokens(address(this), bal);
 
     if (winners.length > 0) {
-      uint256 factor = bal / winners.length;
+      uint256 factor = communityPoolAllocation / winners.length;
       for (uint256 i = 0; i < winners.length; i++) {
         _stake(winners[i], factor, 30);
       }

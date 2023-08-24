@@ -11,7 +11,7 @@ const fs = require("fs");
   }
 
   const allocatorFactory = await ethers.getContractFactory("Allocator");
-  let allocator = await allocatorFactory.deploy("0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578", "0xf6a6a429a0b9676293Df0E3616A6a33cA673b5C3", 25);
+  let allocator = await allocatorFactory.deploy("0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578", "0xf6a6a429a0b9676293Df0E3616A6a33cA673b5C3", 150340);
   allocator = await allocator.deployed();
 
   const contentBuf = fs.readFileSync(location);

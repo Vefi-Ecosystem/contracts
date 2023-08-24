@@ -3,10 +3,12 @@ pragma solidity ^0.8.0;
 interface IAllocator {
   event Stake(address account, uint256 amount, uint256 timestamp, uint256 lockDuration);
   event Unstake(address account, uint256 amount);
-  event TaxPercentageChanged(uint8 newTaxPercentage);
+  event APRChanged(uint24 apr);
   event TierAdded(string name, uint256 num);
 
   function token() external view returns (address);
+
+  function guaranteedAllocationStart() external view returns (uint256);
 
   function apr() external view returns (uint24);
 
