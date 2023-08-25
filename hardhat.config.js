@@ -22,6 +22,9 @@ module.exports = {
     }
   },
   networks: {
+    hardhat: {
+      blockGasLimit: 400807922
+    },
     local: {
       url: "http://localhost:8545",
       accounts: ["0x9bce709a035954deb674a4538ac91cf90518777c98d608c008a31ef700814ffd"], // Try stealing the funds in this
