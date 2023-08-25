@@ -46,7 +46,7 @@ contract AllocationSale is Presale {
       return 0;
     }
 
-    uint256 saleTokenAllocation = (((saleAmount * salePrice) / SALE_PRICE_DECIMALS) * 4) / totalWeight;
+    uint256 saleTokenAllocation = (((saleAmount * salePrice) / SALE_PRICE_DECIMALS) * (4 * 10**18)) / totalWeight;
     return saleTokenAllocation * (userWeight / 10**18);
   }
 
