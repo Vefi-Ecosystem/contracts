@@ -168,5 +168,9 @@ contract PresaleFactory is Ownable, AccessControl {
     _revokeRole(ADMIN_ROLE, account);
   }
 
+  function setAllocator(IAllocator _allocator) external onlyOwner {
+    allocator = _allocator;
+  }
+
   receive() external payable {}
 }

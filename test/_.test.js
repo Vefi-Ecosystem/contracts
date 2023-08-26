@@ -96,7 +96,7 @@ describe("Tests", () => {
           [],
           20,
           1,
-          {gasLimit: 400807922}
+          { gasLimit: 400807922 }
         )
       ).to.emit(presaleFactory, "PresaleCreated");
     });

@@ -105,17 +105,11 @@ contract Allocator is Ownable, AccessControl, Pausable, IAllocator {
     return _totalAndReward.sub(_penaltyFee);
   }
 
-  function accountReward(address _account) public view returns (uint256) {
-    StakeInfo[] storage stakeInfos = userStakes[_account];
-    uint256 accumulatedReward;
+  function accountReward(address _account) public view returns (uint256 x) {
+    StakeInfo[] memory stakeInfos = userStakes[_account];
     uint256 timestamp = block.timestamp;
-
-    for (uint256 i = 0; i < stakeInfos.length; i++) {
-      uint256 t = timestamp.sub(stakeInfos[i].timestamp);
-      uint256 x = 1 + ((((apr / 10**3) * t) / 100) / 31536000);
-      accumulatedReward += x;
-    }
-    return accumulatedReward;
+    uint256 t = timestamp.sub(stakeInfos[0].timestamp);
+    x = 1 + ((((apr / 10**3) * t) / 100) / 31536000);
   }
 
   function userWeight(address _account) public view returns (uint256 accountStake) {
@@ -185,9 +179,10 @@ contract Allocator is Ownable, AccessControl, Pausable, IAllocator {
     require(unstakeable > 0, "you can't unstake at this moment");
     TransferHelpers._safeTransferERC20(token, _msgSender(), unstakeable);
     delete userStakes[_msgSender()];
+    delete userTier[_msgSender()];
 
     totalStaked = totalStaked.sub(tsa);
-    emit Unstake(_msgSender(), tsa);
+    emit Unstake(_msgSender(), unstakeable);
   }
 
   function retrieveEther(address to) external onlyOwner {
