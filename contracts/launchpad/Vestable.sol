@@ -23,7 +23,7 @@ abstract contract Vestable is Ownable {
   }
 
   CliffVesting[] public cliffPeriod;
-  event SetCliffVestingPeriod(CliffVesting[] indexed cliffPeriod);
+  event SetCliffVestingPeriod(uint256[] claimTimes, uint8[] pct);
 
   constructor(uint256 _withdrawTime) {
     withdrawTime = _withdrawTime;
@@ -63,7 +63,7 @@ abstract contract Vestable is Ownable {
     require(totalPct == 100, "total input percentage doesn't equal to 100");
 
     linearVestingEndTime = 0;
-    emit SetCliffVestingPeriod(cliffPeriod);
+    emit SetCliffVestingPeriod(claimTimes, pct);
   }
 
   function getUnlockedToken(
