@@ -31,7 +31,7 @@ const fs = require("fs");
   // console.log("PrivateTokenSaleCreator ", privateTokenSaleCreator.address);
 
   const PresaleFactory = await ethers.getContractFactory("PresaleFactory");
-  let presaleFactory = await PresaleFactory.deploy(10, "0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578", "0x71B1f5225c16455011D26c588EDAb2A89D0d6862");
+  let presaleFactory = await PresaleFactory.deploy(10, "0xb69DB7b7B3aD64d53126DCD1f4D5fBDaea4fF578", "0xF2fE2EF1865789E352D4140D98f99486e2e75E76");
   presaleFactory = await presaleFactory.deployed();
 
   const location = path.join(__dirname, "../presale_factories.json");
