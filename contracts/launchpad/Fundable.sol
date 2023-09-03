@@ -91,6 +91,7 @@ abstract contract Fundable is Ownable, Taxable, ReentrancyGuard {
   }
 
   function setFunder(address _funder) public onlyOwner {
+    require(block.timestamp < endTime, "cannot fund now");
     funder = _funder;
     emit SetFunder(_funder);
   }
@@ -104,7 +105,7 @@ abstract contract Fundable is Ownable, Taxable, ReentrancyGuard {
 
   function getSaleTokensSold() internal virtual returns (uint256 amount);
 
-  function fund(uint256 amount) public onlyFunder onlyBeforeSale {
+  function fund(uint256 amount) public onlyFunder {
     TransferHelpers._safeTransferFromERC20(address(saleToken), _msgSender(), address(this), amount);
 
     saleAmount += amount;
@@ -132,7 +133,7 @@ abstract contract Fundable is Ownable, Taxable, ReentrancyGuard {
 
     uint256 amountUnsold = principal - totalTokensSold;
 
-    TransferHelpers._safeTransferERC20(address(saleToken), funder, amountUnsold);
+    if (amountUnsold > 0) TransferHelpers._safeTransferERC20(address(saleToken), funder, amountUnsold);
 
     emit Cash(_msgSender(), paymentTokenBal, amountUnsold);
   }

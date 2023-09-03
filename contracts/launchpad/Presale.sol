@@ -57,7 +57,9 @@ contract Presale is Purchasable, Fundable, Vestable, Whitelistable {
 
   function purchase(uint256 paymentAmount) public virtual override onlyDuringSale {
     require(whitelistRootHash == 0, "use whitelisted purchase");
-    _purchase(paymentAmount, maxTotalPayment);
+
+    uint256 remaining = maxTotalPayment.sub(paymentReceived[_msgSender()]);
+    _purchase(paymentAmount, remaining);
   }
 
   function whitelistedPurchase(uint256 paymentAmount, bytes32[] calldata merkleProof) public virtual override onlyDuringSale {

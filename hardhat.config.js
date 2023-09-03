@@ -90,6 +90,11 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY],
       chainId: 84531,
       gasPrice: 1000000000
+    },
+    base_mainnet: {
+      url: "https://mainnet.base.org",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 8453
     }
   },
   etherscan: {
