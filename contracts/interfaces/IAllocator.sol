@@ -5,6 +5,7 @@ interface IAllocator {
   event Unstake(address account, uint256 amount);
   event APRChanged(uint24 apr);
   event TierAdded(string name, uint256 num);
+  event TiersReset();
 
   function token() external view returns (address);
 

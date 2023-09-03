@@ -17,9 +17,11 @@
     "deploy:token-sale-creators:bsc:testnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network bsc_testnet",
     "deploy:presaleFactory:base:testnet": "npx hardhat run scripts/deploy_presale_factory.js --network base_goerli",
     "deploy:router:base:testnet": "npx hardhat run scripts/deploy_exchange_router.js --network base_goerli",
+    "deploy:presaleFactory:base:mainnet": "npx hardhat run scripts/deploy_presale_factory.js --network base_mainnet",
     "deploy:beagle:base:testnet": "npx hardhat run scripts/deploy_beagle_swap_adapter.js --network base_goerli",
     "deploy:dackie:base:testnet": "npx hardhat run scripts/deploy_dackie_swap_adapter.js --network base_goerli",
     "deploy:allocator:base:testnet": "npx hardhat run scripts/deploy_allocator.js --network base_goerli",
+    "deploy:allocator:base:mainnet": "npx hardhat run scripts/deploy_allocator.js --network base_mainnet",
     "deploy:special-pools:bitgert:mainnet": "npx hardhat run scripts/deploy_special_staking_pool.js --network bitgert_mainnet",
     "deploy:token-sale-creators:ethereum:mainnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network ethereum_mainnet",
     "deploy:token-sale-creators:polygon:mainnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network matic_mainnet"

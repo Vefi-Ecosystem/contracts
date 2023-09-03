@@ -37,9 +37,9 @@ contract Allocator is Ownable, AccessControl, Pausable, IAllocator {
 
   uint24 public apr;
   uint256 public totalStaked;
-  uint256 public guaranteedAllocationStart = 4e5 * 10**18;
-  uint256 public ONE_LOTTERY_TICKET = 1e5 * 10**18;
-  uint256 public HUNDRED_LOTTERY_TICKETS = 2e5 * 10**18;
+  uint256 public guaranteedAllocationStart = 5e6 * 10**18;
+  uint256 public ONE_LOTTERY_TICKET = 2e5 * 10**18;
+  uint256 public HUNDRED_LOTTERY_TICKETS = 1e6 * 10**18;
 
   address public lottery;
 
@@ -71,16 +71,25 @@ contract Allocator is Ownable, AccessControl, Pausable, IAllocator {
   }
 
   function _initTiers() private {
-    addTier("Luna", 100000e18);
-    addTier("Selene", 200000e18);
-    addTier("Artemis", 400000e18);
-    addTier("Diana", 800000e18);
+    addTier("Luna", 200000e18);
+    addTier("Selene", 1000000e18);
+    addTier("Artemis", 5000000e18);
+    addTier("Diana", 20000000e18);
   }
 
   function addTier(string memory name, uint256 num) public onlyOwner {
     Tier memory tier = Tier({name: name, num: num});
     tiers.push(tier);
     emit TierAdded(name, num);
+  }
+
+  function resetTiers() external onlyOwner {
+    delete tiers;
+    emit TiersReset();
+  }
+
+  function setGuaranteedAllocationStart(uint256 _guaranteedAllocationStart) external onlyOwner {
+    guaranteedAllocationStart = _guaranteedAllocationStart;
   }
 
   function getUnstakeableByAccount(address _account) public view returns (uint256) {
