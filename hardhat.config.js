@@ -95,6 +95,11 @@ module.exports = {
       url: "https://mainnet.base.org",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 8453
+    },
+    vinuchain_mainnet: {
+      url: "https://vinuchain-rpc.com",
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 207
     }
   },
   etherscan: {

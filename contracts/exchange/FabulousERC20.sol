@@ -2,8 +2,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./interfaces/IFabulousERC20.sol";
 
-contract FabulousERC20 is ERC20 {
+contract FabulousERC20 is IFabulousERC20, ERC20 {
   using SafeMath for uint256;
 
   bytes32 public DOMAIN_SEPARATOR;

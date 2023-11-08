@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/ISparkfiRouter.sol";
 import "./interfaces/ISparkfiAdapter.sol";
-import "./interfaces/IWETH.sol";
+import "../interfaces/IWETH.sol";
 import "../helpers/TransferHelper.sol";
 
 contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuard {
