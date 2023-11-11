@@ -17,7 +17,7 @@ contract FabulousExchangeRouter is IPancakeRouter02 {
   address public immutable WETH;
 
   modifier ensure(uint256 deadline) {
-    require(deadline >= block.timestamp, "QuasarRouter: EXPIRED");
+    require(deadline >= block.timestamp, "EXPIRED");
     _;
   }
 

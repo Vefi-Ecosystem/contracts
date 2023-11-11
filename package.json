@@ -27,7 +27,8 @@
     "deploy:token-sale-creators:polygon:mainnet": "npx hardhat run scripts/deploy_token_sale_creator.js --network matic_mainnet",
     "deploy:exchange:factory:vinuchain:mainnet": "npx hardhat run scripts/deploy_factory.js --network vinuchain_mainnet",
     "deploy:weth:vinuchain:mainnet": "npx hardhat run scripts/deploy_weth.js --network vinuchain_mainnet",
-    "deploy:xchange:router:vinuchain:mainnet": "npx hardhat run scripts/deploy_router.js --network vinuchain_mainnet"
+    "deploy:xchange:router:vinuchain:mainnet": "npx hardhat run scripts/deploy_router.js --network vinuchain_mainnet",
+    "deploy:xchange:multihops:router:vinuchain:mainnet": "npx hardhat run scripts/deploy_multihops_router.js --network vinuchain_mainnet"
   },
   "repository": {
     "type": "git",
