@@ -123,7 +123,7 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
       delete stakeBlocks[_msgSender()];
     }
 
-    totalStaked -= unstakeAmount;
+    totalStaked -= amount;
 
     emit Unstake(_msgSender(), amount, block.timestamp);
   }
