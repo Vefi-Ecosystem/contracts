@@ -12,10 +12,11 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
 
   uint256 public rewardByBlock;
   uint256 public rewardsUnlockBlock;
-  uint256 public startBlock;
-  uint256 public endBlock;
+  uint256 public immutable startBlock;
+  uint256 public immutable endBlock;
   uint256 public REWARD_DENOMINATOR = 1e5;
   uint256 public totalRewardsAvailable;
+  uint256 public totalStaked;
 
   uint16 public stakeTax;
   uint16 public unstakeTax;
@@ -101,6 +102,8 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
 
     stakeBlocks[_msgSender()].push(block.number);
 
+    totalStaked += stakeAmount;
+
     emit Stake(_msgSender(), amount, block.timestamp);
   }
 
@@ -119,6 +122,8 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
     if (amountStaked[_msgSender()] == 0) {
       delete stakeBlocks[_msgSender()];
     }
+
+    totalStaked -= unstakeAmount;
 
     emit Unstake(_msgSender(), amount, block.timestamp);
   }
@@ -149,6 +154,11 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
     retrievable = balance - totalRewardsAvailable;
   }
 
+  function getRetrievableStakeToken() public view returns (uint256 retrievable) {
+    uint256 balance = stakeToken.balanceOf(address(this));
+    retrievable = balance - totalStaked;
+  }
+
   function retrieveTokens(
     address token,
     address to,
@@ -157,6 +167,11 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
     if (token == address(rewardToken)) {
       uint256 retrievable = getRetrievableRewardToken();
       require(amount <= retrievable, "amount must be less than or equal to retrievable amount for reward token");
+    }
+
+    if (token == address(stakeToken)) {
+      uint256 retrievable = getRetrievableStakeToken();
+      require(amount <= retrievable, "amount must be less than or equal to retrievable amount for stake token");
     }
 
     TransferHelpers._safeTransferERC20(token, to, amount);
@@ -168,5 +183,17 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
 
   function setBlockForRewardDistribution(uint256 blk) external mustBeMod {
     rewardsUnlockBlock = blk;
+  }
+
+  function setStakeTax(uint16 _stakeTax) external mustBeMod {
+    stakeTax = _stakeTax;
+  }
+
+  function setUnstakeTax(uint16 _unstakeTax) external mustBeMod {
+    unstakeTax = _unstakeTax;
+  }
+
+  function setRewardByBlock(uint256 _rewardByBlock) external mustBeMod {
+    rewardByBlock = _rewardByBlock;
   }
 }
