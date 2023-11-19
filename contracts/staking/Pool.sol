@@ -28,6 +28,7 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
   mapping(address => bool) public blocked;
 
   address taxReceiver;
+  address public immutable deployer;
 
   modifier mustBeMod() {
     require(hasRole(MOD_ROLE, _msgSender()), "must be moderator");
@@ -42,6 +43,11 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
   modifier mustBeWithinBlocks() {
     require(block.number >= startBlock, "not started");
     require(block.number < endBlock, "already ended");
+    _;
+  }
+
+  modifier ownerOrDeployer() {
+    require(_msgSender() == owner() || _msgSender() == deployer, "must be owner or deployer");
     _;
   }
 
@@ -60,6 +66,8 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
     address newOwner,
     address _taxReceiver
   ) Ownable() {
+    require(_endBlock >= _startBlock + 1e12, "start block and end block must be at least 1000000000000 blocks apart");
+
     stakeToken = _stakeToken;
     rewardToken = _rewardToken;
     rewardByBlock = _rewardByBlock;
@@ -72,6 +80,8 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
 
     _transferOwnership(newOwner);
     _grantRole(MOD_ROLE, newOwner);
+
+    deployer = _msgSender();
   }
 
   function getPerBlockRewards(address staker) public view returns (uint256) {
@@ -136,7 +146,7 @@ contract Pool is Ownable, AccessControl, ReentrancyGuard {
     totalRewardsAvailable -= reward;
   }
 
-  function fundPool(uint256 amount) external onlyOwner mustBeWithinBlocks {
+  function fundPool(uint256 amount) external ownerOrDeployer mustBeWithinBlocks {
     require(amount > 0, "must be greater than 0");
     TransferHelpers._safeTransferFromERC20(address(rewardToken), _msgSender(), address(this), amount);
     totalRewardsAvailable += amount;
