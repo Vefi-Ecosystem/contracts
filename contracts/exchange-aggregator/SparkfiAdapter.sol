@@ -12,11 +12,14 @@ abstract contract SparkfiAdapter is ISparkfiAdapter, AccessControl, Ownable {
 
   string public name;
   bytes32 public maintainerRole = keccak256(abi.encodePacked("MAINTAINER_ROLE"));
+  uint256 public swapGasEstimate;
 
   event AdapterSwap(address indexed tokenIn, address indexed tokenOut, address to, uint256 amountIn, uint256 amountOut);
+  event UpdatedGasEstimate(address indexed _adapter, uint256 _newEstimate);
 
-  constructor(string memory _name) Ownable() {
+  constructor(string memory _name, uint256 _gasEstimate) Ownable() {
     name = _name;
+    setSwapGasEstimate(_gasEstimate);
     _grantRole(maintainerRole, _msgSender());
   }
 
@@ -38,6 +41,12 @@ abstract contract SparkfiAdapter is ISparkfiAdapter, AccessControl, Ownable {
   function removeMaintainer(address maintainer) external onlyOwner {
     require(hasRole(maintainerRole, maintainer), "does not have maintainer role");
     _grantRole(maintainerRole, maintainer);
+  }
+
+  function setSwapGasEstimate(uint256 _estimate) public onlyMaintainer {
+    require(_estimate != 0, "Invalid gas-estimate");
+    swapGasEstimate = _estimate;
+    emit UpdatedGasEstimate(address(this), _estimate);
   }
 
   function recoverERC20(

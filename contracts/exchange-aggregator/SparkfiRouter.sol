@@ -8,12 +8,15 @@ import "./interfaces/ISparkfiRouter.sol";
 import "./interfaces/ISparkfiAdapter.sol";
 import "./interfaces/IWETH.sol";
 import "../helpers/TransferHelper.sol";
+import "./lib/ViewUtils.sol";
 
 contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuard {
   using Address for address;
+  using OfferUtils for Offer;
 
   address public FEE_CLAIMER;
   address[] public adapters;
+  address[] public TRUSTED_TOKENS;
   address public WETH;
   uint256 public constant FEE_DENOM = 1e4;
   uint256 public MIN_FEE = 0;
@@ -28,12 +31,15 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
   constructor(
     address[] memory _adapters,
     address _feeClaimer,
-    address _weth
+    address _weth,
+    address[] memory _trustedTokens
   ) {
     adapters = _adapters;
     FEE_CLAIMER = _feeClaimer;
     WETH = _weth;
     _grantRole(maintainerRole, _msgSender());
+    TRUSTED_TOKENS = _trustedTokens;
+    TRUSTED_TOKENS.push(_weth);
   }
 
   modifier onlyMaintainer() {
@@ -101,6 +107,39 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     }
   }
 
+  function queryNoSplit(
+    uint256 _amountIn,
+    address _tokenIn,
+    address _tokenOut,
+    uint8[] calldata _options
+  ) public view override returns (Query memory) {
+    Query memory bestQuery;
+    for (uint8 i; i < _options.length; i++) {
+      address _adapter = adapters[_options[i]];
+      uint256 amountOut = ISparkfiAdapter(_adapter).query(_tokenIn, _tokenOut, _amountIn);
+      if (i == 0 || amountOut > bestQuery.amountOut) {
+        bestQuery = Query(_adapter, _tokenIn, _tokenOut, amountOut);
+      }
+    }
+    return bestQuery;
+  }
+
+  function queryNoSplit(
+    uint256 _amountIn,
+    address _tokenIn,
+    address _tokenOut
+  ) public view override returns (Query memory) {
+    Query memory bestQuery;
+    for (uint8 i; i < adapters.length; i++) {
+      address _adapter = adapters[i];
+      uint256 amountOut = ISparkfiAdapter(_adapter).query(_tokenIn, _tokenOut, _amountIn);
+      if (i == 0 || amountOut > bestQuery.amountOut) {
+        bestQuery = Query(_adapter, _tokenIn, _tokenOut, amountOut);
+      }
+    }
+    return bestQuery;
+  }
+
   function _swap(
     Trade calldata trade,
     address from,
@@ -157,5 +196,114 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     } else {
       _swap(trade, _msgSender(), to, fee);
     }
+  }
+
+  function findBestPathWithGas(
+    uint256 _amountIn,
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _maxSteps,
+    uint256 _gasPrice
+  ) external view override returns (FormattedOffer memory) {
+    require(_maxSteps > 0 && _maxSteps < 5, "invalid max steps");
+    Offer memory queries = OfferUtils.newOffer(_amountIn, _tokenIn);
+    uint256 gasPriceInExitTkn = _gasPrice > 0 ? getGasPriceInExitTkn(_gasPrice, _tokenOut) : 0;
+    queries = _findBestPath(_amountIn, _tokenIn, _tokenOut, _maxSteps, queries, gasPriceInExitTkn);
+    if (queries.adapters.length == 0) {
+      queries.amounts = "";
+      queries.path = "";
+    }
+    return queries.format();
+  }
+
+  // Find the market price between gas-asset(native) and token-out and express gas price in token-out
+  function getGasPriceInExitTkn(uint256 _gasPrice, address _tokenOut) internal view returns (uint256 price) {
+    // Avoid low-liquidity price appreciation (https://github.com/yieldyak/yak-aggregator/issues/20)
+    FormattedOffer memory gasQuery = findBestPath(1e18, WETH, _tokenOut, 2);
+    if (gasQuery.path.length != 0) {
+      // Leave result in nWei to preserve precision for assets with low decimal places
+      price = (gasQuery.amounts[gasQuery.amounts.length - 1] * _gasPrice) / 1e9;
+    }
+  }
+
+  /**
+   * Return path with best returns between two tokens
+   */
+  function findBestPath(
+    uint256 _amountIn,
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _maxSteps
+  ) public view override returns (FormattedOffer memory) {
+    require(_maxSteps > 0 && _maxSteps < 5, "invalid max steps");
+    Offer memory queries = OfferUtils.newOffer(_amountIn, _tokenIn);
+    queries = _findBestPath(_amountIn, _tokenIn, _tokenOut, _maxSteps, queries, 0);
+    // If no paths are found return empty struct
+    if (queries.adapters.length == 0) {
+      queries.amounts = "";
+      queries.path = "";
+    }
+    return queries.format();
+  }
+
+  function _findBestPath(
+    uint256 _amountIn,
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _maxSteps,
+    Offer memory _queries,
+    uint256 _tknOutPriceNwei
+  ) internal view returns (Offer memory) {
+    Offer memory bestOption = _queries.clone();
+    uint256 bestAmountOut;
+    uint256 gasEstimate;
+    bool withGas = _tknOutPriceNwei != 0;
+
+    // First check if there is a path directly from tokenIn to tokenOut
+    Query memory queryDirect = queryNoSplit(_amountIn, _tokenIn, _tokenOut);
+
+    if (queryDirect.amountOut != 0) {
+      if (withGas) {
+        gasEstimate = ISparkfiAdapter(queryDirect.adapter).swapGasEstimate();
+      }
+      bestOption.addToTail(queryDirect.amountOut, queryDirect.adapter, queryDirect.tokenOut, gasEstimate);
+      bestAmountOut = queryDirect.amountOut;
+    }
+    // Only check the rest if they would go beyond step limit (Need at least 2 more steps)
+    if (_maxSteps > 1 && _queries.adapters.length / 32 <= _maxSteps - 2) {
+      // Check for paths that pass through trusted tokens
+      for (uint256 i = 0; i < TRUSTED_TOKENS.length; i++) {
+        if (_tokenIn == TRUSTED_TOKENS[i]) {
+          continue;
+        }
+        // Loop through all adapters to find the best one for swapping tokenIn for one of the trusted tokens
+        Query memory bestSwap = queryNoSplit(_amountIn, _tokenIn, TRUSTED_TOKENS[i]);
+        if (bestSwap.amountOut == 0) {
+          continue;
+        }
+        // Explore options that connect the current path to the tokenOut
+        Offer memory newOffer = _queries.clone();
+        if (withGas) {
+          gasEstimate = ISparkfiAdapter(bestSwap.adapter).swapGasEstimate();
+        }
+        newOffer.addToTail(bestSwap.amountOut, bestSwap.adapter, bestSwap.tokenOut, gasEstimate);
+        newOffer = _findBestPath(bestSwap.amountOut, TRUSTED_TOKENS[i], _tokenOut, _maxSteps, newOffer, _tknOutPriceNwei); // Recursive step
+        address tokenOut = newOffer.getTokenOut();
+        uint256 amountOut = newOffer.getAmountOut();
+        // Check that the last token in the path is the tokenOut and update the new best option if neccesary
+        if (_tokenOut == tokenOut && amountOut > bestAmountOut) {
+          if (newOffer.gasEstimate > bestOption.gasEstimate) {
+            uint256 gasCostDiff = (_tknOutPriceNwei * (newOffer.gasEstimate - bestOption.gasEstimate)) / 1e9;
+            uint256 priceDiff = amountOut - bestAmountOut;
+            if (gasCostDiff > priceDiff) {
+              continue;
+            }
+          }
+          bestAmountOut = amountOut;
+          bestOption = newOffer;
+        }
+      }
+    }
+    return bestOption;
   }
 }
