@@ -16,8 +16,9 @@ contract DackieSwapAdapter is SparkfiAdapter {
   constructor(
     string memory _name,
     address _factory,
-    uint256 fee
-  ) SparkfiAdapter(_name) {
+    uint256 fee,
+    uint256 _swapGasEstimate
+  ) SparkfiAdapter(_name, _swapGasEstimate) {
     factory = _factory;
     feeCompliment = FEE_DENOMINATOR - fee;
   }
