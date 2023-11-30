@@ -1,7 +1,7 @@
 const { ethers, network } = require("hardhat");
 const path = require("path");
 const fs = require("fs");
-const { abi: routerABI } = require("../artifacts/contracts/swap_aggregator/SparkfiRouter.sol/SparkfiRouter.json");
+const { abi: routerABI } = require("../artifacts/contracts/exchange-aggregator/SparkfiRouter.sol/SparkfiRouter.json");
 
 require("dotenv").config();
 
@@ -12,7 +12,7 @@ require("dotenv").config();
   if (!fileExists) return;
 
   const adapterFactory = await ethers.getContractFactory("DackieSwapAdapter");
-  let adapter = await adapterFactory.deploy("DackieSwap", "0x1D25b9D81623a093ffc2b02E8da1d006b16F0AD8", 3);
+  let adapter = await adapterFactory.deploy("Dackieswap", "0x1D25b9D81623a093ffc2b02E8da1d006b16F0AD8", 3, 215000);
   adapter = await adapter.deployed();
 
   const contentBuf = fs.readFileSync(location);
@@ -22,7 +22,7 @@ require("dotenv").config();
 
   if (!arr) arr = [];
 
-  arr[arr.length >= 1 ? 1 : arr.length - 1] = adapter.address;
+  arr.push(adapter.address);
 
   fs.writeFileSync(location, JSON.stringify({ ...contentJSON, [network.config.chainId]: arr }, undefined, 2));
 
@@ -31,7 +31,7 @@ require("dotenv").config();
   const routerContentJSON = JSON.parse(routerContentBuf.toString());
 
   const router = routerContentJSON[network.config.chainId];
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.providers.JsonRpcProvider(network.config.url));
   const tx = await new ethers.Contract(router, routerABI).connect(wallet).setAdapters(arr);
   await tx.wait();
 })();

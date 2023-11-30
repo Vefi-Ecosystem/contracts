@@ -19,8 +19,8 @@ abstract contract SparkfiAdapter is ISparkfiAdapter, AccessControl, Ownable {
 
   constructor(string memory _name, uint256 _gasEstimate) Ownable() {
     name = _name;
-    setSwapGasEstimate(_gasEstimate);
     _grantRole(maintainerRole, _msgSender());
+    setSwapGasEstimate(_gasEstimate);
   }
 
   modifier onlyMaintainer() {
