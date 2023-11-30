@@ -121,6 +121,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
         bestQuery = Query(_adapter, _tokenIn, _tokenOut, amountOut);
       }
     }
+
     return bestQuery;
   }
 
@@ -138,6 +139,10 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
       }
     }
     return bestQuery;
+  }
+
+  function adptersLength() external view returns (uint256 length) {
+    length = adapters.length;
   }
 
   function _swap(
