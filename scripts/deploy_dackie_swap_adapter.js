@@ -12,7 +12,7 @@ require("dotenv").config();
   if (!fileExists) return;
 
   const adapterFactory = await ethers.getContractFactory("DackieSwapAdapter");
-  let adapter = await adapterFactory.deploy("Dackieswap", "0x1D25b9D81623a093ffc2b02E8da1d006b16F0AD8", 3, 215000);
+  let adapter = await adapterFactory.deploy("Dackieswap", "0x591f122D1df761E616c13d265006fcbf4c6d6551", 3, 215000);
   adapter = await adapter.deployed();
 
   const contentBuf = fs.readFileSync(location);

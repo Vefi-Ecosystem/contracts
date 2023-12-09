@@ -92,7 +92,7 @@ module.exports = {
       gasPrice: 1000000000
     },
     base_mainnet: {
-      url: "https://mainnet.base.org",
+      url: "https://base.publicnode.com",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 8453
     }
