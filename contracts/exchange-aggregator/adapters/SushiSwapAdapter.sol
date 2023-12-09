@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../interfaces/ICitadelFactory.sol";
-import "../interfaces/ICitadelPair.sol";
+import "../interfaces/IUniswapV2Factory.sol";
+import "../interfaces/IUniswapV2Pair.sol";
 import "../SparkfiAdapter.sol";
 import "../../helpers/TransferHelper.sol";
 
-contract CitadelSwapAdapter is SparkfiAdapter {
+contract SushiswapAdapter is SparkfiAdapter {
   using SafeMath for uint256;
 
   uint256 internal constant FEE_DENOMINATOR = 1e4;
@@ -41,11 +41,11 @@ contract CitadelSwapAdapter is SparkfiAdapter {
   ) internal view override returns (uint256) {
     if (tokenIn == tokenOut || amountIn == 0) return 0;
 
-    address pair = IFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);
 
     if (pair == address(0)) return 0;
 
-    (uint256 r0, uint256 r1, , ) = IPair(pair).getReserves();
+    (uint256 r0, uint256 r1, ) = IUniswapV2Pair(pair).getReserves();
     (uint256 reserveIn, uint256 reserveOut) = tokenIn < tokenOut ? (r0, r1) : (r1, r0);
     return reserveIn > 0 && reserveOut > 0 ? _getAmountOut(amountIn, reserveIn, reserveOut) : 0;
   }
@@ -57,9 +57,9 @@ contract CitadelSwapAdapter is SparkfiAdapter {
     uint256 amountIn,
     uint256 amountOut
   ) internal override {
-    address pair = IFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);
     (uint256 amount0Out, uint256 amount1Out) = tokenIn < tokenOut ? (uint256(0), amountOut) : (amountOut, uint256(0));
     TransferHelpers._safeTransferERC20(tokenIn, pair, amountIn);
-    IPair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
+    IUniswapV2Pair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
   }
 }

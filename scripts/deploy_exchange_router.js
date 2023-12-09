@@ -13,7 +13,9 @@ const fs = require("fs");
     "0x4b9C9B4e39d4e5026359b05a6287Ee4d0737f211",
     "0xc2BC7A73613B9bD5F373FE10B55C59a69F4D617B",
     "0x3055913c90Fcc1A6CE9a358911721eEb942013A1",
-    "0xb79dd08ea68a908a97220c76d19a6aa9cbde4376"
+    "0xb79dd08ea68a908a97220c76d19a6aa9cbde4376",
+    "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+    "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22"
   ]);
   router = await router.deployed();
 
