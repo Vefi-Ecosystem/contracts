@@ -10,7 +10,7 @@ const { abi: routerABI } = require("../artifacts/contracts/exchange-aggregator/S
   if (!fileExists) return;
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.providers.JsonRpcProvider(network.config.url));
   const adapterFactory = await ethers.getContractFactory("BeagleSwapAdapter");
-  let adapter = await adapterFactory.deploy("Beagleswap", "0x0EC483dE4bef13293E9dBD35CA9766973c61Ac52", 25, 215000);
+  let adapter = await adapterFactory.deploy("Beagleswap", "0xa4922cC1083F7c46DF4fB2EA13FB92a9F4Db139C", 25, 215000);
   adapter = await adapter.deployed();
 
   const contentBuf = fs.readFileSync(location);

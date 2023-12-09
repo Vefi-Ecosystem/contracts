@@ -125,22 +125,6 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     return bestQuery;
   }
 
-  function queryNoSplit(
-    uint256 _amountIn,
-    address _tokenIn,
-    address _tokenOut
-  ) public view override returns (Query memory) {
-    Query memory bestQuery;
-    for (uint8 i; i < adapters.length; i++) {
-      address _adapter = adapters[i];
-      uint256 amountOut = ISparkfiAdapter(_adapter).query(_tokenIn, _tokenOut, _amountIn);
-      if (i == 0 || amountOut > bestQuery.amountOut) {
-        bestQuery = Query(_adapter, _tokenIn, _tokenOut, amountOut);
-      }
-    }
-    return bestQuery;
-  }
-
   function adptersLength() external view returns (uint256 length) {
     length = adapters.length;
   }
@@ -265,7 +249,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     bool withGas = _tknOutPriceNwei != 0;
 
     // First check if there is a path directly from tokenIn to tokenOut
-    Query memory queryDirect = queryNoSplit(_amountIn, _tokenIn, _tokenOut);
+    Query memory queryDirect = query(_tokenIn, _tokenOut, _amountIn);
 
     if (queryDirect.amountOut != 0) {
       if (withGas) {
@@ -282,7 +266,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
           continue;
         }
         // Loop through all adapters to find the best one for swapping tokenIn for one of the trusted tokens
-        Query memory bestSwap = queryNoSplit(_amountIn, _tokenIn, TRUSTED_TOKENS[i]);
+        Query memory bestSwap = query(_tokenIn, TRUSTED_TOKENS[i], _amountIn);
         if (bestSwap.amountOut == 0) {
           continue;
         }

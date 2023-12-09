@@ -47,12 +47,6 @@ interface ISparkfiRouter {
     uint8[] calldata _options
   ) external view returns (Query memory);
 
-  function queryNoSplit(
-    uint256 _amountIn,
-    address _tokenIn,
-    address _tokenOut
-  ) external view returns (Query memory);
-
   function findBestPathWithGas(
     uint256 _amountIn,
     address _tokenIn,
