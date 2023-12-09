@@ -1,23 +1,24 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../interfaces/IDackieFactory.sol";
-import "../interfaces/IDackiePair.sol";
+import "../interfaces/ICitadelFactory.sol";
+import "../interfaces/ICitadelPair.sol";
 import "../SparkfiAdapter.sol";
 import "../../helpers/TransferHelper.sol";
 
-contract DackieSwapAdapter is SparkfiAdapter {
+contract CitadelSwapAdapter is SparkfiAdapter {
   using SafeMath for uint256;
 
-  uint256 internal constant FEE_DENOMINATOR = 1e3;
+  uint256 internal constant FEE_DENOMINATOR = 1e4;
   uint256 public immutable feeCompliment;
   address public immutable factory;
 
   constructor(
     string memory _name,
     address _factory,
-    uint256 fee
-  ) SparkfiAdapter(_name) {
+    uint256 fee,
+    uint256 _swapGasEstimate
+  ) SparkfiAdapter(_name, _swapGasEstimate) {
     factory = _factory;
     feeCompliment = FEE_DENOMINATOR - fee;
   }
@@ -40,11 +41,11 @@ contract DackieSwapAdapter is SparkfiAdapter {
   ) internal view override returns (uint256) {
     if (tokenIn == tokenOut || amountIn == 0) return 0;
 
-    address pair = IDackieFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IFactory(factory).getPair(tokenIn, tokenOut);
 
     if (pair == address(0)) return 0;
 
-    (uint256 r0, uint256 r1, ) = IDackiePair(pair).getReserves();
+    (uint256 r0, uint256 r1,, ) = IPair(pair).getReserves();
     (uint256 reserveIn, uint256 reserveOut) = tokenIn < tokenOut ? (r0, r1) : (r1, r0);
     return reserveIn > 0 && reserveOut > 0 ? _getAmountOut(amountIn, reserveIn, reserveOut) : 0;
   }
@@ -56,9 +57,9 @@ contract DackieSwapAdapter is SparkfiAdapter {
     uint256 amountIn,
     uint256 amountOut
   ) internal override {
-    address pair = IDackieFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IFactory(factory).getPair(tokenIn, tokenOut);
     (uint256 amount0Out, uint256 amount1Out) = tokenIn < tokenOut ? (uint256(0), amountOut) : (amountOut, uint256(0));
     TransferHelpers._safeTransferERC20(tokenIn, pair, amountIn);
-    IDackiePair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
+    IPair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
   }
 }

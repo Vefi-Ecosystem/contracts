@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../interfaces/IBeagleFactory.sol";
-import "../interfaces/IBeaglePair.sol";
+import "../interfaces/IPancakeFactory.sol";
+import "../interfaces/IPancakePair.sol";
 import "../SparkfiAdapter.sol";
 import "../../helpers/TransferHelper.sol";
 
-contract BeagleSwapAdapter is SparkfiAdapter {
+contract PancakeswapAdapter is SparkfiAdapter {
   using SafeMath for uint256;
 
   uint256 internal constant FEE_DENOMINATOR = 1e4;
@@ -16,8 +16,9 @@ contract BeagleSwapAdapter is SparkfiAdapter {
   constructor(
     string memory _name,
     address _factory,
-    uint256 fee
-  ) SparkfiAdapter(_name) {
+    uint256 fee,
+    uint256 _swapGasEstimate
+  ) SparkfiAdapter(_name, _swapGasEstimate) {
     factory = _factory;
     feeCompliment = FEE_DENOMINATOR - fee;
   }
@@ -40,11 +41,11 @@ contract BeagleSwapAdapter is SparkfiAdapter {
   ) internal view override returns (uint256) {
     if (tokenIn == tokenOut || amountIn == 0) return 0;
 
-    address pair = IBeagleFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IPancakeFactory(factory).getPair(tokenIn, tokenOut);
 
     if (pair == address(0)) return 0;
 
-    (uint256 r0, uint256 r1, ) = IBeaglePair(pair).getReserves();
+    (uint256 r0, uint256 r1, ) = IPancakePair(pair).getReserves();
     (uint256 reserveIn, uint256 reserveOut) = tokenIn < tokenOut ? (r0, r1) : (r1, r0);
     return reserveIn > 0 && reserveOut > 0 ? _getAmountOut(amountIn, reserveIn, reserveOut) : 0;
   }
@@ -56,9 +57,9 @@ contract BeagleSwapAdapter is SparkfiAdapter {
     uint256 amountIn,
     uint256 amountOut
   ) internal override {
-    address pair = IBeagleFactory(factory).getPair(tokenIn, tokenOut);
+    address pair = IPancakeFactory(factory).getPair(tokenIn, tokenOut);
     (uint256 amount0Out, uint256 amount1Out) = tokenIn < tokenOut ? (uint256(0), amountOut) : (amountOut, uint256(0));
     TransferHelpers._safeTransferERC20(tokenIn, pair, amountIn);
-    IBeaglePair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
+    IPancakePair(pair).swap(amount0Out, amount1Out, to, new bytes(0));
   }
 }

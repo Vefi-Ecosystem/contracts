@@ -16,4 +16,6 @@ interface ISparkfiAdapter {
     uint256,
     uint256
   ) external;
+
+  function swapGasEstimate() external view returns (uint256);
 }
