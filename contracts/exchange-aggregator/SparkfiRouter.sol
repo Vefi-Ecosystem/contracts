@@ -173,7 +173,7 @@ contract SparkfiRouter is ISparkfiRouter, AccessControl, Ownable, ReentrancyGuar
     Trade calldata trade,
     address to,
     uint256 fee
-  ) external payable {
+  ) external payable nonReentrant {
     if (trade.path[0] == WETH) {
       require(trade.amountIn >= msg.value, "trade.amountIn must be at least equal to msg.value");
       IWETH(WETH).deposit{value: trade.amountIn}();
