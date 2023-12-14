@@ -7,8 +7,8 @@ const fs = require("fs");
   const fileExists = fs.existsSync(location);
 
   if (!fileExists) return;
-  const adapterFactory = await ethers.getContractFactory("PancakeswapAdapter");
-  let adapter = await adapterFactory.deploy("Pancakeswap V2", "0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E", 25, 215000);
+  const adapterFactory = await ethers.getContractFactory("BaseswapAdapter");
+  let adapter = await adapterFactory.deploy("Baseswap", "0xFDa619b6d20975be80A10332cD39b9a4b0FAa8BB", 25, 215000);
   adapter = await adapter.deployed();
 
   const contentBuf = fs.readFileSync(location);
